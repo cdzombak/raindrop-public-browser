@@ -1,606 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bookmarks - Chris Dzombak</title>
-    <meta name="description" content="Public bookmarks saved by Chris Dzombak.">
+    <title>Bookmarks</title>
+    <meta name="description" content="Public bookmarks.">
     <meta name="generator" content="raindrop-public-browser golden">
-
     <link rel="canonical" href="https://bookmarks.example.com/1">
-    <link rel="alternate" type="application/rss+xml" title="Chris Dzombak's bookmarks" href="https://www.dzombak.com/feeds/bookmarks.rss.xml">
-    <link rel="icon" href="https://www.dzombak.com/content/images/size/w256h256/2025/02/2023-Apple---square.png" type="image/png">
-    <link rel="stylesheet" href="https://www.dzombak.com/assets/built/screen.css">
     
     <style>
-     
+    :root {
+      --bg: #ffffff;
+      --fg: #1a1a1a;
+      --muted: #555555;
+      --border: #dddddd;
+      --accent: #205080;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111111;
+        --fg: #eeeeee;
+        --muted: #b0b0b0;
+        --border: #3a3a3a;
+        --accent: #8ab4e8;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 1rem;
+      font-family: system-ui, sans-serif;
+      line-height: 1.5;
+      color: var(--fg);
+      background: var(--bg);
+    }
+
+    a { color: var(--accent); }
 
      
+    a:focus-visible, input:focus-visible, button:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+    }
 
-    .cdz-visually-hidden {
+    .visually-hidden {
       position: absolute !important;
       width: 1px;
       height: 1px;
-      padding: 0;
       margin: -1px;
+      padding: 0;
       overflow: hidden;
-      clip: rect(0 0 0 0);
       clip-path: inset(50%);
       white-space: nowrap;
       border: 0;
     }
 
-    .cdz-skip-link {
-      position: absolute;
-      top: 0;
-      left: -9999px;
-      z-index: 100;
-      padding: 1rem 1.6rem;
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--color-primary-text);
-      background-color: var(--background-color);
-      border: 2px solid var(--ghost-accent-color);
-      border-radius: 0 0 0.25em 0;
-    }
-
-    .cdz-skip-link:focus {
-      left: 0;
-    }
-
-     
-    a:focus-visible,
-    button:focus-visible,
-    input:focus-visible,
-    [tabindex]:focus-visible {
-      outline: 3px solid var(--ghost-accent-color);
-      outline-offset: 2px;
-      border-radius: 2px;
-    }
-
-     
-    #gh-main:focus-visible {
-      outline: 2px dashed var(--ghost-accent-color);
-      outline-offset: -4px;
-    }
-
-     
-
-    .gh-head-inner {
-      --head-nav-gap: 3rem;
-    }
-
-    @media (max-width: 1100px) {
-      .gh-head-inner {
-        --head-nav-gap: 2rem;
-      }
-    }
-
-    .gh-head-menu .nav > li {
-      opacity: 1;
-    }
-
-     
-    @media (max-width: 767px) {
-      #gh-head {
-        height: auto;
-      }
-
-      #gh-head .gh-head-inner {
-        gap: 1.2rem;
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto;
-        height: auto;
-        padding-bottom: 1.2rem;
-      }
-
-      #gh-head .gh-head-brand {
-        display: block;
-        height: auto;
-      }
-
-      #gh-head .gh-head-menu {
-        position: static;
-        justify-content: flex-start;
-        margin: 0;
-        visibility: visible;
-        opacity: 1;
-      }
-
-      #gh-head .cdz-nav-container {
-        width: 100%;
-      }
-
-      #gh-head .nav {
-        flex-wrap: wrap;
-        gap: 0.8rem 2rem;
-        white-space: normal;
-      }
-
-      #gh-head .nav li {
-        opacity: 1;
-        transform: none;
-      }
-
-      #gh-head .nav a {
-        font-size: 1.4rem;
-        font-weight: 500;
-        text-transform: uppercase;
-      }
-    }
-
-     
-
-    .gh-foot-inner .cdz-foot-nav-container {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto;
-    }
-
-     
-
-     
-
-    .cdz-bm-pagehead {
-      margin-bottom: 4rem;
-    }
-
-    .cdz-bm-pagehead-title {
-      font-size: 4.2rem;
-      line-height: 1.1;
-    }
-
-    @media (min-width: 768px) {
-      .cdz-bm-pagehead-title {
-        font-size: 5.6rem;
-      }
-    }
-
-    .cdz-bm-pagehead-desc {
-      max-width: 60ch;
-      margin-top: 1.2rem;
-      font-size: 1.6rem;
-      color: var(--color-secondary-text);
-    }
-
-    .cdz-bm-pagehead-desc a {
-      color: var(--ghost-accent-color);
-      text-decoration: underline;
-    }
-
-     
-
-    .cdz-bm-empty {
+    .site-header nav {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 50vh;
-      text-align: center;
+      gap: 1.5rem;
+      align-items: baseline;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
     }
 
-    .cdz-bm-empty-msg {
-      font-family: var(--gh-font-heading, var(--font-serif));
-      font-size: 3.2rem;
-      font-weight: 450;
-      letter-spacing: -0.01em;
-      color: var(--color-secondary-text);
-    }
-
-     
-
-    .cdz-bm-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr));
-      gap: 1.6rem;
-      padding: 0;
-      margin: 0;
-      list-style: none;
-    }
-
-    .cdz-bm-item {
-      display: flex;
-      margin: 0;
-    }
-
-     
-    .cdz-bm-card.kg-bookmark-card {
-      width: 100%;
-      height: 100%;
-    }
-
-    .cdz-bm-card .kg-bookmark-container {
-      display: flex;
-      align-items: stretch;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      color: var(--color-primary-text);
-      background-color: var(--background-color);
-      border: 1px solid var(--color-light-gray);
-      border-radius: 0.25em;
-    }
-
-    .cdz-bm-card .kg-bookmark-content {
-      display: flex;
-      flex: 1 1 auto;
-      flex-direction: column;
-      align-items: flex-start;
-      min-width: 0;
-      padding: 1.15em;
-      overflow: hidden;
-      font-family: var(--font-sans);
-    }
-
-    .cdz-bm-card .kg-bookmark-title {
-      font-weight: 600;
-      line-height: 1.25;
-      word-break: break-word;
-    }
-
-    .cdz-bm-card .kg-bookmark-title a {
-      color: var(--color-primary-text);
+    .site-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--fg);
       text-decoration: none;
     }
 
-    .cdz-bm-card .kg-bookmark-title a:hover {
-      text-decoration: underline;
-    }
-
-     
-    .cdz-bm-card.kg-bookmark-card .kg-bookmark-description {
-      flex: 1 1 auto;
-      margin-top: 0.8rem;
-      font-size: 0.95em;
-      line-height: 1.55;
-      color: var(--color-secondary-text);
-      word-break: break-word;
-    }
-
-    .cdz-bm-card .kg-bookmark-metadata {
+    .empty-state {
       display: flex;
-      flex-wrap: wrap;
+      justify-content: center;
       align-items: center;
-      gap: 0 0.8rem;
-      width: 100%;
-      margin-top: 1.6rem;
-      font-size: 0.8em;
-      font-weight: 500;
-      color: var(--color-secondary-text);
+      min-height: 50vh;
+      font-size: 1.3rem;
+      color: var(--muted);
     }
 
-    .cdz-bm-card .cdz-bm-domain {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
+    .bm-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
     }
 
-    .cdz-bm-card .cdz-bm-domain + .cdz-bm-date::before {
-      margin-right: 0.8rem;
-      content: "\2022";
+    .bm-item {
+      display: flex;
+      gap: 1rem;
+      justify-content: space-between;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .bm-text { min-width: 0; }
+
+    .bm-title {
+      margin: 0;
+      font-size: 1.1rem;
+      overflow-wrap: break-word;
+    }
+
+    .bm-excerpt {
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+      overflow-wrap: break-word;
+    }
+
+    .bm-meta {
+      margin: 0.4rem 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
     }
 
      
-    .cdz-bm-card .kg-bookmark-thumbnail {
-      position: relative;
-      flex: 0 0 34%;
-      min-width: 32%;
-      max-width: 36%;
-      background-color: var(--color-lighter-gray);
+    .bm-cover {
+      flex: 0 0 8rem;
+      align-self: center;
     }
 
-    .cdz-bm-card .kg-bookmark-thumbnail::before {
+    .bm-cover img {
       display: block;
       width: 100%;
       aspect-ratio: 16 / 10;
-      content: "";
-    }
-
-    .cdz-bm-card .kg-bookmark-thumbnail img {
-      position: absolute;
-      inset: 0;
-      display: block;
-      width: 100%;
-      height: 100%;
       object-fit: cover;
-      border-radius: 0 0.2em 0.2em 0;
+      border-radius: 4px;
+      background: var(--border);
     }
 
-     
-
-    .cdz-bm-pagination {
-      padding-top: 2.4rem;
-      margin-top: 4.8rem;
-      border-top: 1px solid var(--color-light-gray);
-    }
-
-    .cdz-bm-pagination-list {
+    .pagination ul {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
-      gap: 0.8rem;
+      gap: 0.5rem;
+      margin: 1.5rem 0 0;
       padding: 0;
-      margin: 0;
       list-style: none;
     }
 
-    .cdz-bm-pagination a {
+    .pagination a {
       display: inline-flex;
-      align-items: center;
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+      padding: 0.25rem 0.75rem;
       justify-content: center;
-      min-width: 4.4rem;
-      min-height: 4.4rem;
-      padding: 0 1.2rem;
-      font-size: 1.5rem;
-      font-weight: 500;
-      color: var(--color-primary-text);
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 4px;
       text-decoration: none;
-      border: 1px solid var(--color-light-gray);
-      border-radius: 0.25em;
     }
 
-    .cdz-bm-pagination a:hover {
-      text-decoration: underline;
-      border-color: var(--color-mid-gray);
+    .pagination a[aria-current="page"] {
+      font-weight: 700;
+      color: var(--bg);
+      background: var(--accent);
+      border-color: var(--accent);
     }
 
-    .cdz-bm-pagination a[aria-current="page"] {
-      font-weight: 600;
-      color: var(--background-color);
-      background-color: var(--ghost-accent-color);
-      border-color: var(--ghost-accent-color);
+    .site-footer {
+      margin-top: 2rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
     }
 
-    .cdz-bm-page-arrow {
-      font-size: 1.3em;
-      line-height: 1;
-    }
-
-    .cdz-bm-pagination-summary {
-      margin-top: 1.2rem;
-      font-size: 1.3rem;
-      color: var(--color-secondary-text);
-    }
-
-     
-
-    .cdz-search-form {
-      max-width: 64rem;
-      margin-bottom: 3.2rem;
-    }
-
-    .cdz-search-label {
+    .search-form label {
       display: block;
-      margin-bottom: 0.8rem;
-      font-size: 1.4rem;
+      margin-bottom: 0.4rem;
       font-weight: 600;
-      letter-spacing: 0.01em;
-      color: var(--color-secondary-text);
-      text-transform: uppercase;
     }
 
-    .cdz-search-row {
+    .search-row {
       display: flex;
-      gap: 0.8rem;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
     }
 
-    .cdz-search-input {
-      flex: 1 1 auto;
+    .search-row input {
+      flex: 1;
       min-width: 0;
-      height: 5.2rem;
-      padding: 0 1.4rem;
-      font-family: var(--font-sans);
-      font-size: 1.7rem;
-      color: var(--color-primary-text);
-      background-color: var(--background-color);
-       
-      border: 1px solid var(--color-dark-gray);
-      border-radius: 0.25em;
-      -webkit-appearance: none;
-      appearance: none;
+      padding: 0.5rem 0.75rem;
+      font: inherit;
+      color: var(--fg);
+      background: var(--bg);
+      border: 1px solid var(--muted);
+      border-radius: 4px;
     }
 
-    .cdz-search-input::placeholder {
-      color: var(--color-secondary-text);
-      opacity: 1;
-    }
-
-    .cdz-search-submit {
-      flex: 0 0 auto;
-      min-height: 5.2rem;
-      padding: 0 1.8rem;
-      font-size: 1.4rem;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-      color: var(--background-color);
-      text-transform: uppercase;
+    .search-row button {
+      padding: 0.5rem 1rem;
+      font: inherit;
+      color: var(--bg);
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
       cursor: pointer;
-      background-color: var(--ghost-accent-color);
-      border: 1px solid var(--ghost-accent-color);
-      border-radius: 0.25em;
     }
 
-    #search-results[aria-busy="true"] {
-      opacity: 0.55;
-    }
+    #search-results[aria-busy="true"] { opacity: 0.6; }
 
-    @media (prefers-reduced-motion: no-preference) {
-      #search-results {
-        transition: opacity 0.15s ease-in-out;
-      }
-    }
+    .search-prompt { color: var(--muted); }
 
-    .cdz-search-prompt {
-      font-size: 1.9rem;
-      color: var(--color-secondary-text);
-    }
-
-    .cdz-search-hint {
-      max-width: 60ch;
-      margin-top: 0.8rem;
-      font-size: 1.5rem;
-      color: var(--color-secondary-text);
-    }
-
-    .cdz-search-count {
-      margin-bottom: 1.6rem;
-      font-size: 1.4rem;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-      color: var(--color-secondary-text);
-      text-transform: uppercase;
-    }
-
-    .cdz-search-truncated {
-      margin-top: 1.6rem;
-      font-size: 1.5rem;
-      font-style: italic;
-      color: var(--color-secondary-text);
-    }
-
-    @media (max-width: 767px) {
-      .cdz-bm-pagehead {
-        margin-bottom: 3.2rem;
-      }
-
-      .cdz-search-row {
-        flex-wrap: wrap;
-      }
-
-      .cdz-search-submit {
-        flex: 1 1 100%;
-      }
+    @media (max-width: 480px) {
+      .bm-item { flex-direction: column; }
+      .bm-cover { flex-basis: auto; }
     }
     </style>
 </head>
-<body class="has-serif-title is-head-left-logo is-dropdown-loaded">
-<a class="cdz-skip-link" href="#gh-main">Skip to content</a>
-<div class="gh-site">
+<body>
+<header class="site-header">
+    <nav aria-label="Main">
+        <a class="site-title" href="/1" aria-current="page">Bookmarks</a>
+        <a href="/search">Search</a>
+    </nav>
+</header>
 
-    
-    <header id="gh-head" class="gh-head gh-outer">
-        <div class="gh-head-inner gh-inner">
-            <div class="gh-head-brand">
-                <div class="gh-head-brand-wrapper">
-                    <a class="gh-head-logo" href="https://www.dzombak.com">
-                        Chris Dzombak
-                    </a>
-                    <div class="cdz-head-logo-subtitle">&hellip; has too many hobbies.</div>
-                </div>
+<main>
+    <ul class="bm-list">
+
+        <li class="bm-item">
+            <div class="bm-text">
+                <h2 class="bm-title"><a href="https://example.com/escaping" rel="noopener noreferrer">Ampersands &amp; &lt;Angles&gt;</a></h2>
+                <p class="bm-excerpt">Escaping &#34;quotes&#34;, &lt;tags&gt; &amp; entities.</p>
+                <p class="bm-meta"><span class="bm-domain">example.com</span> · <span class="bm-date">January 3, 2026</span></p>
             </div>
+        </li>
 
-            <nav class="gh-head-menu" aria-label="Main">
-                <div class="cdz-nav-container">
-                    <ul class="nav">
-                        <li class="nav-blog"><a href="https://www.dzombak.com/blog/">Blog</a></li>
-                        <li class="nav-contact"><a href="https://www.dzombak.com/contact/">Contact</a></li>
-                        <li class="nav-etc"><a href="https://www.dzombak.com/etc/">/etc</a></li>
-                        <li class="nav-photos"><a href="https://pictures.dzombak.com/">Photos</a></li>
-                        <li class="nav-github"><a href="https://github.com/cdzombak">GitHub</a></li>
-                        <li class="nav-bookmarks nav-current"><a href="/1" aria-current="page">Bookmarks</a></li>
-                        <li class="nav-search"><a href="/search">Search</a></li>
-                    </ul>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-    <main id="gh-main" class="gh-main gh-outer" tabindex="-1">
-        <div class="gh-inner">
-            <header class="cdz-bm-pagehead">
-                <h1 class="gh-article-title cdz-bm-pagehead-title">Bookmarks</h1>
-                <p class="cdz-bm-pagehead-desc">
-                    Links I&rsquo;ve saved and made public.
-                    <a href="https://bookmarks.example.com/search">Search them</a>, or
-                    <a href="https://www.dzombak.com/feeds/bookmarks.rss.xml">subscribe by RSS</a>.
-                </p>
-            </header>
-
-            <ul class="cdz-bm-list">
-
-                <li class="cdz-bm-item">
-                    <div class="cdz-card kg-card kg-bookmark-card cdz-bm-card">
-                        <div class="kg-bookmark-container">
-                            <div class="kg-bookmark-content">
-                                <div class="kg-bookmark-title">
-                                    <a class="cdz-bm-title-link" href="https://example.com/escaping" rel="noopener noreferrer">Ampersands &amp; &lt;Angles&gt;</a>
-                                </div>
-                                <div class="kg-bookmark-description">Escaping &#34;quotes&#34;, &lt;tags&gt; &amp; entities.</div>
-                                <div class="kg-bookmark-metadata">
-                                    <span class="cdz-bm-domain">example.com</span>
-                                    <span class="cdz-bm-date">January 3, 2026</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="cdz-bm-item">
-                    <div class="cdz-card kg-card kg-bookmark-card cdz-bm-card">
-                        <div class="kg-bookmark-container">
-                            <div class="kg-bookmark-content">
-                                <div class="kg-bookmark-title">
-                                    <a class="cdz-bm-title-link" href="https://news.ycombinator.com/item?id=1" rel="noopener noreferrer">SQLite for Servers</a>
-                                </div>
-                                <div class="kg-bookmark-description">Notes on running SQLite in production.</div>
-                                <div class="kg-bookmark-metadata">
-                                    <span class="cdz-bm-domain">news.ycombinator.com</span>
-                                    <span class="cdz-bm-date">January 2, 2026</span>
-                                </div>
-                            </div>
-                            <div class="kg-bookmark-thumbnail">
-                                <img src="/covers/2-0011aabb.jpg" alt="" loading="lazy" decoding="async">
-                            </div>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="cdz-bm-item">
-                    <div class="cdz-card kg-card kg-bookmark-card cdz-bm-card">
-                        <div class="kg-bookmark-container">
-                            <div class="kg-bookmark-content">
-                                <div class="kg-bookmark-title">
-                                    <a class="cdz-bm-title-link" href="https://sqlite.org/wal.html" rel="noopener noreferrer">Understanding SQLite WAL Mode</a>
-                                </div>
-                                <div class="kg-bookmark-metadata">
-                                    <span class="cdz-bm-domain">sqlite.org</span>
-                                    <span class="cdz-bm-date">January 1, 2026</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </main>
-
-    
-    <footer class="gh-foot gh-outer cdz-foot-nonpost">
-        <div class="gh-foot-inner gh-inner">
-            <div class="gh-copyright">
-                <div class="cdz-stuff-i-like-emoji" title="some stuff I like" role="img" aria-label="some stuff I like">&#128187;&#65039; &#128757;&#127995;&#8205;&#9792;&#65039; &#127957;&#65039; &#128038; &#128248; &#129706; &#9749; &#127785;&#65039; &#128251; &#128758;</div>
-                <div class="cdz-copyright">
-                    &copy; 2026 <a href="https://www.dzombak.com/contact/">Chris Dzombak</a>
-                    <div class="cdz-terms-notice">All rights reserved unless otherwise noted.</div>
-                </div>
+        <li class="bm-item">
+            <div class="bm-text">
+                <h2 class="bm-title"><a href="https://news.ycombinator.com/item?id=1" rel="noopener noreferrer">SQLite for Servers</a></h2>
+                <p class="bm-excerpt">Notes on running SQLite in production.</p>
+                <p class="bm-meta"><span class="bm-domain">news.ycombinator.com</span> · <span class="bm-date">January 2, 2026</span></p>
             </div>
-            <div class="cdz-foot-nav-container">
-                <nav class="cdz-foot-nav" aria-label="Footer">
-                    <h2 class="gh-section-title">Site Navigation</h2>
-                    <ul class="nav">
-                        <li><a href="https://bookmarks.example.com/1">Bookmarks</a></li>
-                        <li><a href="https://bookmarks.example.com/search">Search bookmarks</a></li>
-                        <li><a href="https://www.dzombak.com/feeds/bookmarks.rss.xml">Bookmarks RSS</a></li>
-                        <li><a href="https://www.dzombak.com/blog/">Blog</a></li>
-                        <li><a href="https://www.dzombak.com/contact/">Contact</a></li>
-                        <li><a href="https://www.dzombak.com/etc/">/etc</a></li>
-                        <li><a href="https://pictures.dzombak.com/">Photos</a></li>
-                    </ul>
-                </nav>
+            <div class="bm-cover">
+                <img src="/covers/2-0011aabb.jpg" alt="" loading="lazy" decoding="async">
             </div>
-        </div>
-    </footer>
+        </li>
 
-</div>
+        <li class="bm-item">
+            <div class="bm-text">
+                <h2 class="bm-title"><a href="https://sqlite.org/wal.html" rel="noopener noreferrer">Understanding SQLite WAL Mode</a></h2>
+                <p class="bm-meta"><span class="bm-domain">sqlite.org</span> · <span class="bm-date">January 1, 2026</span></p>
+            </div>
+        </li>
+    </ul>
+</main>
+
+<footer class="site-footer">
+    <p>Served by raindrop-public-browser golden.</p>
+</footer>
 </body>
-
 </html>

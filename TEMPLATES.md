@@ -255,9 +255,8 @@ Level AA.
 - Wrapped in `<nav aria-label="Pagination">`.
 - The current page carries `aria-current="page"`.
 - Every control has a text accessible name — "Previous page", not a bare `«`.
-  The example renders arrows as `aria-hidden="true"` decoration beside the text,
-  and gives numbered links a visually hidden "Page " prefix so their names read
-  as "Page 3".
+  The example gives numbered links a visually hidden "Page " prefix so their
+  names read as "Page 3".
 - Unavailable previous/next controls are **omitted entirely**, never rendered as
   `aria-disabled` links.
 
@@ -276,105 +275,27 @@ Static assets are **out of scope for this application** — it serves no CSS,
 fonts or images of its own. A template is free to reference assets hosted
 anywhere by URL.
 
-The example hotlinks dzombak.com's compiled stylesheet:
+The shipped example is deliberately minimal and self-contained: system fonts,
+no external assets, and a small embedded `<style>` block in `list.html.tmpl`
+(shared with the search page via `{{template "page-css"}}`). Dark mode is
+handled by redefining the palette's CSS custom properties under
+`@media (prefers-color-scheme: dark)`; the layout is a single centered column
+that reflows for phones. All colour pairs in both modes meet WCAG 2.2 AA
+contrast, focus indicators are explicit `:focus-visible` outlines, and
+pagination targets are at least 44×44 px.
 
-```html
-<link rel="stylesheet" href="https://www.dzombak.com/assets/built/screen.css">
-```
-
-That one file also `@import`s the web fonts, so no separate font links are
-needed. Everything else the example needs is embedded in a `<style>` block in
-`list.html.tmpl` (shared with the search page via `{{template "app-css"}}`),
-written entirely in terms of that stylesheet's custom properties:
-`--background-color`, `--color-primary-text`, `--color-secondary-text`,
-`--color-light-gray`, `--color-mid-gray`, `--color-dark-gray`,
-`--color-lighter-gray`, `--ghost-accent-color`, `--font-sans`, `--font-serif`.
-Dark mode therefore comes for free — dzombak.com redefines those properties
-under `@media (prefers-color-scheme: dark)`, and the example adds no colour
-literals of its own.
-
-Layout follows the site: `.gh-outer` / `.gh-inner` (1200px container) with the
-767px mobile breakpoint. Bookmark cards reuse the Ghost bookmark-card classes
-(`.kg-bookmark-card`, `.kg-bookmark-container`, `.kg-bookmark-content`,
-`.kg-bookmark-title`, `.kg-bookmark-description`, `.kg-bookmark-metadata`,
-`.kg-bookmark-thumbnail`) plus dzombak.com's `.cdz-card` modifier.
+A full-featured template styled to match dzombak.com (hotlinked site CSS,
+Ghost bookmark-card markup, the site's header and footer) lives in
+[cdzombak/bookmarks-template-dzombakdotcom](https://github.com/cdzombak/bookmarks-template-dzombakdotcom).
 
 ### Shared definitions in the example
 
-Defined in `list.html.tmpl`, used from all three files:
+Defined in `list.html.tmpl`, used from the other files:
 
 | Name | Data | Purpose |
 | --- | --- | --- |
-| `app-css` | none | The `<style>` block |
-| `site-header` | `string` — `"bookmarks"` or `"search"` | The dzombak.com header, marking the current nav item |
-| `site-footer` | `string` — the base URL | The dzombak.com footer |
-| `bookmark-item` | `Bookmark` | One `<li>` bookmark card, used by the list page **and** by `results.html.tmpl` |
+| `page-css` | none | The `<style>` block |
+| `bookmark-item` | `Bookmark` | One `<li>` bookmark entry, used by the list page **and** by `results.html.tmpl` so the two cannot drift |
 
 If you replace `list.html.tmpl` wholesale, either keep these definitions or
 update the other two files.
-
-### Deviations from dzombak.com's markup, and why
-
-The example is not a byte-for-byte copy of the site's HTML. Each change below is
-deliberate:
-
-- **The card is not a wrapping `<a>`.** Ghost renders bookmark cards as
-  `<a class="kg-bookmark-container">` around the whole card. The accessibility
-  requirements say the title is the link, so the container is a `<div>` and only
-  the title text is wrapped in an `<a>`. Because dzombak.com's rules are written
-  against `a.kg-bookmark-container`, the container's own appearance (flex row,
-  border, radius, background, overflow) is restyled in the embedded CSS.
-- **The Ghost search button and burger menu are omitted.** Both depend on
-  Ghost's `sodo-search` and `main.min.js`, which this app does not load. A plain
-  `/search` link is in the nav instead, and the embedded CSS overrides
-  screen.css's mobile rules so the header nav is shown inline and wraps, rather
-  than being hidden behind a burger that has no JavaScript to open it.
-- **`is-dropdown-loaded` is on `<body>`.** screen.css holds header nav items at
-  `opacity: 0` until Ghost's JS adds that class. Without it the nav would be
-  invisible at every viewport width.
-- **No Ghost scripts.** `sodo-search`, `prism`, the analytics beacon,
-  `cards.min.js`, PhotoSwipe and the feed widgets are all omitted, along with
-  their markup. The only script in the example is the search enhancement.
-- **The footer has one nav column instead of four**, and the section heading is
-  an `<h2>` rather than the site's `<h3>`, so heading levels do not skip from
-  `<h1>`.
-- **`.cdz-terms-notice` is a `<div>`, not `<span><p>…</p></span>`.** The site's
-  nesting is invalid HTML; a `<div>` renders identically.
-- **The footer emoji strip gets `role="img"` and an `aria-label`**, so screen
-  readers announce "some stuff I like" once instead of ten emoji names. The
-  site's `title` attribute is kept.
-- **A visually hidden "Skip to content" link** is added before the header
-  (WCAG 2.4.1). `#gh-main` gets `tabindex="-1"` as its target.
-- **No OpenGraph or Twitter card tags**, per the MVP scope.
-
-### Accessibility flags in the inherited palette
-
-Checked against the site's own colours, in both modes:
-
-| Combination | Light | Dark | Verdict |
-| --- | --- | --- | --- |
-| Body text `--color-primary-text` on background | #000 on #fff, 21:1 | #fff on #040404, 20.4:1 | Pass |
-| Muted text `--color-secondary-text` on background | #444 on #fff, 9.7:1 | #ccc on #040404, 12.8:1 | Pass |
-| Accent `--ghost-accent-color` on background | #425269 on #fff, 7.9:1 | #809fcc on #040404, 7.6:1 | Pass |
-| Button/current-page text on accent | #fff on #425269, 7.9:1 | #040404 on #809fcc, 7.6:1 | Pass |
-| **Tertiary text `--color-tertiary-text` on background** | **#999 on #fff, 2.85:1** | #777 on #040404, 4.58:1 | **Light mode fails 1.4.3 (needs 4.5:1)** |
-
-`--color-tertiary-text` is used by dzombak.com for `.cdz-terms-notice` — the
-"All rights reserved unless otherwise noted." line in the footer. **This is
-flagged rather than silently changed**, so the example keeps matching the site's
-design. The embedded CSS carries a commented-out one-line fix
-(`.cdz-terms-notice { color: var(--color-secondary-text); }`) that an operator
-can enable, and the app's own chrome (dates, domains, hints, counts) uses
-`--color-secondary-text` throughout, so nothing this application generates
-depends on the failing colour.
-
-Two further notes:
-
-- The example does not use `--color-tertiary-text` anywhere else.
-- Focus indicators are added explicitly (`:focus-visible`, a 3px accent outline
-  with a 2px offset) rather than relying on browser defaults, and no rule in the
-  example removes an outline. The site's stylesheet sets `outline: none` on
-  `.gh-icon-btn`, `.gh-text-btn` and `.cdz-inline-icon-btn-sm`; the example uses
-  none of those classes.
-- Pagination controls are at least 44×44 px, comfortably above the 24×24 px
-  floor of WCAG 2.2 SC 2.5.8.

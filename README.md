@@ -112,8 +112,10 @@ The site's entire HTML output is operator-customizable. Point `TEMPLATE_DIR`
 at a directory containing `list.html.tmpl`, `search.html.tmpl`, and
 `results.html.tmpl`. Templates are loaded once at startup; restart the app to
 pick up edits. See [TEMPLATES.md](TEMPLATES.md) for the full contract, and
-[`example-template/`](example-template/) for a complete working example
-(styled to match dzombak.com).
+[`example-template/`](example-template/) for a complete, minimal working
+example. A full-featured template styled to match dzombak.com is maintained
+separately in
+[cdzombak/bookmarks-template-dzombakdotcom](https://github.com/cdzombak/bookmarks-template-dzombakdotcom).
 
 ## URLs
 

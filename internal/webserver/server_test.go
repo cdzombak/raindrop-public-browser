@@ -364,14 +364,14 @@ func TestSearchPage(t *testing.T) {
 		r := e.get(t, "/search?q=x")
 		r.wantStatus(t, http.StatusOK)
 		r.contains(t, "Start typing to search")
-		r.notContains(t, "cdz-search-hits")
+		r.notContains(t, "search-hits")
 	})
 
 	t.Run("whitespace-only query returns the empty state", func(t *testing.T) {
 		r := e.get(t, "/search?q=%20%20")
 		r.wantStatus(t, http.StatusOK)
 		r.contains(t, "Start typing to search")
-		r.notContains(t, "cdz-search-hits")
+		r.notContains(t, "search-hits")
 	})
 }
 

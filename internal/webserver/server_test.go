@@ -315,6 +315,33 @@ func TestNotFoundPaths(t *testing.T) {
 	}
 }
 
+// The site is read-only, so a write method is "not allowed here", not
+// "no such page" — including on paths that do exist for GET.
+func TestNonReadMethodsAreNotAllowed(t *testing.T) {
+	e := newEnv(t, fixtureBookmarks())
+
+	for _, tc := range []struct{ method, path string }{
+		{http.MethodPost, "/1"},
+		{http.MethodPost, "/search"},
+		{http.MethodPut, "/"},
+		{http.MethodDelete, "/covers/" + testCoverFile},
+		{http.MethodPost, "/does-not-exist"},
+	} {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			r := do(t, e.client, tc.method, e.url(tc.path), nil)
+			r.wantStatus(t, http.StatusMethodNotAllowed)
+			r.wantHeader(t, "Allow", "GET, HEAD")
+			r.wantHeader(t, "Cache-Control", "no-store")
+		})
+	}
+
+	// HEAD is not a write method: it must still reach the real handler.
+	t.Run("HEAD still serves", func(t *testing.T) {
+		r := do(t, e.client, http.MethodHead, e.url("/1"), nil)
+		r.wantStatus(t, http.StatusOK)
+	})
+}
+
 func TestTrailingSlashRedirects(t *testing.T) {
 	e := newEnv(t, fixtureBookmarks())
 

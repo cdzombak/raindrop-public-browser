@@ -82,9 +82,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /sitemap.xml", s.serveSitemap)
 	mux.HandleFunc("GET /_status", s.serveStatus)
 	mux.HandleFunc("GET /{page}", s.serveNumberedPage)
-	// Everything else (multi-segment paths, unmatched methods) 404s with
-	// the no-store header error responses require.
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) { s.notFound(w) })
+	mux.HandleFunc("/", s.serveFallback)
 	return stripTrailingSlash(mux)
 }
 
@@ -114,6 +112,24 @@ func stripTrailingSlash(next http.Handler) http.Handler {
 func (s *Server) notFound(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-store")
 	http.Error(w, "404 page not found", http.StatusNotFound)
+}
+
+// serveFallback answers every request no other route claimed: multi-segment
+// paths, and requests using a method the site does not have.
+//
+// The method check lives here because this pattern matches every path, so it
+// reaches ServeMux's own 405 handling first — without it a POST to /1 came
+// back 404, claiming the page does not exist rather than that the site is
+// read-only. Answering 405 for any path is right for a site where GET and
+// HEAD are the only methods anywhere.
+func (s *Server) serveFallback(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		w.Header().Set("Cache-Control", "no-store")
+		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	s.notFound(w)
 }
 
 func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {

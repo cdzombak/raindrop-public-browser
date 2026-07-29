@@ -84,7 +84,17 @@ func runServe(logger *slog.Logger) error {
 		return fmt.Errorf("initial prerender: %w", err)
 	}
 
-	srv := webserver.New(st, renderer, cfg.ImagesDir, cfg.BaseURL, snap, logger)
+	// The server holds this directory open as a restricted root for the whole
+	// run, so it has to exist before it starts; the downloader would
+	// otherwise not create it until the first cover arrives.
+	if err := os.MkdirAll(cfg.ImagesDir, 0o750); err != nil {
+		return fmt.Errorf("create images directory: %w", err)
+	}
+	srv, err := webserver.New(st, renderer, cfg.ImagesDir, cfg.BaseURL, snap, logger)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = srv.Close() }()
 
 	tokens, err := refresh.NewOAuthTokenSource(cfg.OAuthStateFile, state, logger)
 	if err != nil {

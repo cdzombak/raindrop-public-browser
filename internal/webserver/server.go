@@ -27,11 +27,13 @@ import (
 // swapped atomically after each refresh; requests always serve a complete,
 // consistent snapshot.
 type Server struct {
-	store     *store.Store
-	renderer  *render.Renderer
-	imagesDir string
-	baseURL   string
-	logger    *slog.Logger
+	store    *store.Store
+	renderer *render.Renderer
+	// images is the cover directory as a restricted root: every path
+	// resolved through it stays inside, so no request can escape it.
+	images  *os.Root
+	baseURL string
+	logger  *slog.Logger
 
 	snapshot      atomic.Pointer[render.Snapshot]
 	lastRefreshOK atomic.Bool
@@ -40,18 +42,28 @@ type Server struct {
 // New creates a Server serving the given initial snapshot.
 // last_refresh_ok starts true, until the initial refresh runs and we know
 // whether it succeeded.
-func New(st *store.Store, r *render.Renderer, imagesDir, baseURL string, snap *render.Snapshot, logger *slog.Logger) *Server {
+//
+// The images directory is opened here, once, rather than per cover request.
+// It must already exist. Call Close when done with the server.
+func New(st *store.Store, r *render.Renderer, imagesDir, baseURL string, snap *render.Snapshot, logger *slog.Logger) (*Server, error) {
+	images, err := os.OpenRoot(imagesDir)
+	if err != nil {
+		return nil, fmt.Errorf("open images directory: %w", err)
+	}
 	s := &Server{
-		store:     st,
-		renderer:  r,
-		imagesDir: imagesDir,
-		baseURL:   baseURL,
-		logger:    logger,
+		store:    st,
+		renderer: r,
+		images:   images,
+		baseURL:  baseURL,
+		logger:   logger,
 	}
 	s.snapshot.Store(snap)
 	s.lastRefreshOK.Store(true)
-	return s
+	return s, nil
 }
+
+// Close releases the handle on the images directory.
+func (s *Server) Close() error { return s.images.Close() }
 
 // SetSnapshot atomically swaps in a freshly prerendered snapshot.
 func (s *Server) SetSnapshot(snap *render.Snapshot) { s.snapshot.Store(snap) }
@@ -222,15 +234,7 @@ func (s *Server) serveCover(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w)
 		return
 	}
-	// Resolve against a restricted root: even a crafted name cannot escape
-	// the images directory.
-	root, err := os.OpenRoot(s.imagesDir)
-	if err != nil {
-		s.serverError(w, r, err)
-		return
-	}
-	defer func() { _ = root.Close() }()
-	f, err := root.Open(name)
+	f, err := s.images.Open(name)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			s.notFound(w)

@@ -153,7 +153,11 @@ func newEnv(t *testing.T, bms []store.Bookmark) *env {
 		t.Fatalf("Snapshot: %v", err)
 	}
 
-	srv := New(st, renderer, imagesDir, testBaseURL, snap, testLogger())
+	srv, err := New(st, renderer, imagesDir, testBaseURL, snap, testLogger())
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() { _ = srv.Close() })
 	httpSrv := httptest.NewServer(srv.Handler())
 	t.Cleanup(httpSrv.Close)
 

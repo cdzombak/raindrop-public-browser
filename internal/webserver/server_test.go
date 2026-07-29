@@ -8,8 +8,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -457,6 +459,22 @@ func TestSearchResultsSnippet(t *testing.T) {
 		r.contains(t, "zzzznomatch")
 	})
 
+	// Unbounded queries are unbounded FTS5 work on the store's single
+	// connection, and nothing rate-limits this endpoint.
+	t.Run("over-long query is truncated", func(t *testing.T) {
+		long := strings.Repeat("sqlite ", 500)
+		r := e.get(t, "/search/results?q="+url.QueryEscape(long))
+		r.wantStatus(t, http.StatusOK)
+
+		m := regexp.MustCompile(`for “([^”]*)”`).FindStringSubmatch(r.body)
+		if m == nil {
+			t.Fatalf("no echoed query in the response body: %.200q", r.body)
+		}
+		if n := len([]rune(m[1])); n > maxQueryLen {
+			t.Errorf("echoed query is %d runes, want <= %d", n, maxQueryLen)
+		}
+	})
+
 	// The JS only skips the request below 2 typed characters, so a query
 	// like "!!" reaches the endpoint and normalizes away to nothing.
 	t.Run("query that normalizes to nothing returns the too-short fragment", func(t *testing.T) {
@@ -466,6 +484,29 @@ func TestSearchResultsSnippet(t *testing.T) {
 		r.contains(t, "Enter at least 2 characters")
 		r.notContains(t, "Start typing to search")
 	})
+}
+
+func TestCapQuery(t *testing.T) {
+	// Multi-byte runes: the cap counts runes, not bytes, so a query of
+	// exactly maxQueryLen non-ASCII characters must pass through whole.
+	exact := strings.Repeat("é", maxQueryLen)
+	for name, tc := range map[string]struct{ in, want string }{
+		"short":            {"sqlite", "sqlite"},
+		"exactly at limit": {exact, exact},
+		"one over":         {exact + "é", exact},
+		"trailing space trimmed after the cut": {
+			strings.Repeat("a", maxQueryLen-1) + "  bbb",
+			strings.Repeat("a", maxQueryLen-1),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := capQuery(tc.in)
+			if got != tc.want {
+				t.Errorf("capQuery(%d runes) = %q (%d runes), want %q (%d runes)",
+					len([]rune(tc.in)), got, len([]rune(got)), tc.want, len([]rune(tc.want)))
+			}
+		})
+	}
 }
 
 // --- robots, sitemap, status ---------------------------------------------

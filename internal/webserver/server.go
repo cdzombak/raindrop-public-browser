@@ -203,6 +203,26 @@ func (s *Server) serveSearchResults(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body) //nolint:gosec // body is html/template output with contextual autoescaping
 }
 
+// maxQueryLen bounds a search query, in runes. Every token in a query becomes
+// its own prefix term in the FTS5 match expression, and every search runs on
+// the store's single connection — so an unbounded query is unbounded work
+// that blocks every other search and the refresher behind it. Nothing else
+// rate-limits this endpoint.
+//
+// Over-long queries are truncated rather than rejected: no real search is
+// this long, and truncating still answers with something sensible.
+const maxQueryLen = 128
+
+// capQuery truncates q to maxQueryLen runes. Cutting mid-token is harmless —
+// every token is a prefix term already.
+func capQuery(q string) string {
+	runes := []rune(q)
+	if len(runes) <= maxQueryLen {
+		return q
+	}
+	return strings.TrimSpace(string(runes[:maxQueryLen]))
+}
+
 // resultsData executes the query (if valid) and builds the template data.
 // Empty, whitespace-only, unmatchable, and too-short queries all return a
 // non-results state with HTTP 200.
@@ -210,6 +230,7 @@ func (s *Server) resultsData(r *http.Request, q string) (render.ResultsData, err
 	if q == "" {
 		return render.EmptyResults(), nil
 	}
+	q = capQuery(q)
 	// Minimum length applies to the whole normalized query, not per token:
 	// while typing "sqlite s", the trailing 1-char token is a legitimate
 	// prefix filter.

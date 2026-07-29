@@ -4,11 +4,21 @@ The application renders every HTML page from operator-supplied templates loaded
 at startup from the directory named by the template-directory environment
 variable. Templates are Go [`html/template`](https://pkg.go.dev/html/template)
 files. They are parsed once at startup and never reloaded; restart the app to
-pick up edits. If any of the three required files is missing or fails to parse,
-the app logs the error and exits non-zero rather than serving broken pages.
+pick up edits.
+
+At startup the app also *renders* every template against synthetic data
+covering each branch — a populated list page, the empty state, and all four
+results states. A missing file, a parse failure, or an execution failure (a
+misspelled field, a call to a template that does not exist) is logged and
+exits non-zero. Rendering matters as much as parsing: a fresh install has no
+bookmarks, so nothing else would exercise your bookmark markup until the first
+refresh, and the app would serve "no bookmarks yet" indefinitely while the
+real error appeared only in the log.
 
 A complete, working example lives in [`example-template/`](example-template/).
-It exercises every template file and every documented field.
+Every field documented below is used somewhere in it, so it doubles as a
+worked reference; the handler and golden-file tests render through it, so it
+cannot quietly fall out of date with the code.
 
 ## The three required files
 
@@ -36,8 +46,8 @@ for _, name := range []string{"list.html.tmpl", "search.html.tmpl", "results.htm
 Two consequences matter when you write your own templates:
 
 1. **They share one namespace.** Any `{{define "…"}}` in one file is callable
-   from the other two. The example uses this for the shared header, footer,
-   stylesheet and bookmark-card markup (see [Shared
+   from the other two. The example uses this for its stylesheet and its
+   bookmark markup (see [Shared
    definitions](#shared-definitions-in-the-example)). Names are global across
    the set, so pick distinctive ones.
 2. **`results.html.tmpl` is included by name.** `search.html.tmpl` embeds the
@@ -254,7 +264,12 @@ Level AA.
 **Pagination**
 
 - Wrapped in `<nav aria-label="Pagination">`.
-- The current page carries `aria-current="page"`.
+- The current page carries `aria-current="page"` — and nothing else on the
+  page does. A link elsewhere in the layout that always points at `/1` is not
+  the current page except when you are on page 1; `aria-current="true"` is the
+  token for "current section".
+- Elided page ranges are marked, so non-consecutive numbers cannot be misread
+  as consecutive. See `.GapBefore`.
 - Every control has a text accessible name — "Previous page", not a bare `«`.
   The example gives numbered links a visually hidden "Page " prefix so their
   names read as "Page 3".
@@ -281,9 +296,15 @@ no external assets, and a small embedded `<style>` block in `list.html.tmpl`
 (shared with the search page via `{{template "page-css"}}`). Dark mode is
 handled by redefining the palette's CSS custom properties under
 `@media (prefers-color-scheme: dark)`; the layout is a single centered column
-that reflows for phones. All colour pairs in both modes meet WCAG 2.2 AA
-contrast, focus indicators are explicit `:focus-visible` outlines, and
-pagination targets are at least 44×44 px.
+that reflows for phones. Text meets WCAG 2.2 AA contrast in both modes, focus
+indicators are explicit `:focus-visible` outlines, and pagination targets are
+at least 44×44 px. The `--border` colour is used only for separators and
+container outlines whose controls are already identified by their label text,
+so it is not held to the 3:1 of SC 1.4.11.
+
+The example is a starting point, not a certification: if you restyle it, the
+[accessibility requirements](#accessibility-requirements) above are what
+remain binding.
 
 A full-featured template styled to match dzombak.com (hotlinked site CSS,
 Ghost bookmark-card markup, the site's header and footer) lives in

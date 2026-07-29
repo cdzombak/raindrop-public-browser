@@ -150,7 +150,7 @@ separately in
 | Path | Description |
 | --- | --- |
 | `/`, `/1`, `/2`, … | Bookmark list pages, reverse-chronological. `/` serves page 1 and declares `/1` canonical. |
-| `/search` | Search page; `/search?q=…` works without JavaScript. Disallowed in `robots.txt`. |
+| `/search` | Search page; `/search?q=…` works without JavaScript. A query string that amounts to no query (`?q=`, `?q=%20`) redirects here, so the cacheable page has exactly one URL. Disallowed in `robots.txt`. |
 | `/search/results?q=…` | Server-rendered HTML fragment used by the live-search JavaScript. |
 | `/covers/…` | Downloaded cover images (immutable cache headers). |
 | `/sitemap.xml` | Regenerated after every refresh. |

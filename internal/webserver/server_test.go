@@ -269,6 +269,26 @@ func TestListPages(t *testing.T) {
 	t.Run("three pages exist", func(t *testing.T) {
 		e.get(t, "/3").wantStatus(t, http.StatusOK)
 	})
+
+	// aria-current="page" must name the page you are actually on, and only
+	// that one. The site-title link points at /1 from every page, so it must
+	// not claim it.
+	t.Run("exactly one aria-current=page, on the current page's link", func(t *testing.T) {
+		for _, tc := range []struct {
+			page string
+			body string
+		}{{"1", page1.body}, {"2", page2.body}} {
+			// The trailing ">" keeps the example's `a[aria-current="page"]`
+			// CSS selector out of the count.
+			if n := strings.Count(tc.body, `aria-current="page">`); n != 1 {
+				t.Errorf("page %s: %d elements have aria-current=\"page\", want 1", tc.page, n)
+			}
+			want := `<a href="/` + tc.page + `" aria-current="page">`
+			if !strings.Contains(tc.body, want) {
+				t.Errorf("page %s: no link marked %s", tc.page, want)
+			}
+		}
+	})
 }
 
 func TestNotFoundPaths(t *testing.T) {

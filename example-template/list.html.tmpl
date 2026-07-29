@@ -27,7 +27,13 @@ the full template contract.
 <body>
 <header class="site-header">
     <nav aria-label="Main">
-        <a class="site-title" href="/1"{{if not .Empty}} aria-current="page"{{end}}>Bookmarks</a>
+{{- /*
+        aria-current="true", not "page": this link points at /1, which is only
+        the current page when you are on page 1. "true" marks the current
+        section, leaving "page" to the pagination control below, which knows
+        which page you are actually on.
+    */}}
+        <a class="site-title" href="/1" aria-current="true">Bookmarks</a>
         <a href="/search">Search</a>
     </nav>
 </header>

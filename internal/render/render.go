@@ -52,7 +52,15 @@ type PageLink struct {
 	Num     int
 	URL     string
 	Current bool
+	// GapBefore is true when the previous entry's page number is not
+	// Num-1, i.e. pages were elided between them. Templates should render
+	// some separator ("…") so 1, 7, 8, 9, 42 does not read as consecutive.
+	GapBefore bool
 }
+
+// pageWindow is how many pages are linked either side of the current one, in
+// addition to the always-present first and last.
+const pageWindow = 2
 
 // ListData is the data passed to list.html.tmpl.
 type ListData struct {
@@ -268,6 +276,28 @@ func (r *Renderer) Snapshot(ctx context.Context, st *store.Store, refreshed time
 	}, nil
 }
 
+// pageLinks builds the pagination entries for one page: the first page, a
+// window of pageWindow either side of the current one, and the last page.
+// Linking every page instead would put one anchor per page on every page —
+// quadratic in the number of pages, and unreadable well before it is slow.
+func pageLinks(page, totalPages int) []PageLink {
+	var links []PageLink
+	prev := 0
+	for p := 1; p <= totalPages; p++ {
+		if p != 1 && p != totalPages && (p < page-pageWindow || p > page+pageWindow) {
+			continue
+		}
+		links = append(links, PageLink{
+			Num:       p,
+			URL:       fmt.Sprintf("/%d", p),
+			Current:   p == page,
+			GapBefore: prev != 0 && p != prev+1,
+		})
+		prev = p
+	}
+	return links
+}
+
 func (r *Renderer) renderList(page, totalPages, count int, bms []store.Bookmark) ([]byte, error) {
 	d := ListData{
 		Bookmarks:    r.BookmarkViews(bms),
@@ -284,9 +314,7 @@ func (r *Renderer) renderList(page, totalPages, count int, bms []store.Bookmark)
 	if page < totalPages {
 		d.NextURL = fmt.Sprintf("/%d", page+1)
 	}
-	for p := 1; p <= totalPages; p++ {
-		d.Pages = append(d.Pages, PageLink{Num: p, URL: fmt.Sprintf("/%d", p), Current: p == page})
-	}
+	d.Pages = pageLinks(page, totalPages)
 	var buf bytes.Buffer
 	if err := r.tpl.ExecuteTemplate(&buf, ListTemplate, d); err != nil {
 		return nil, fmt.Errorf("render list page %d: %w", page, err)

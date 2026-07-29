@@ -57,6 +57,14 @@ the full template contract.
             <li><a href="{{.PrevURL}}" rel="prev">Previous page</a></li>
 {{- end}}
 {{- range .Pages}}
+{{- /*
+            .Pages omits pages far from the current one, so mark the elisions.
+            aria-hidden because the page numbers themselves already tell a
+            screen reader user which pages are on offer.
+        */}}
+{{- if .GapBefore}}
+            <li class="pagination-gap" aria-hidden="true">…</li>
+{{- end}}
             <li><a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}><span class="visually-hidden">Page </span>{{.Num}}</a></li>
 {{- end}}
 {{- if .NextURL}}
@@ -245,6 +253,13 @@ the full template contract.
       border: 1px solid var(--border);
       border-radius: 4px;
       text-decoration: none;
+    }
+
+    .pagination-gap {
+      display: inline-flex;
+      min-height: 2.75rem;
+      align-items: center;
+      color: var(--muted);
     }
 
     .pagination a[aria-current="page"] {

@@ -104,7 +104,8 @@ One numbered entry in the pagination control.
 | --- | --- | --- |
 | `.Num` | `int` | The page number, 1-based. |
 | `.URL` | `string` | Root-relative page URL, e.g. `/3`. |
-| `.Current` | `bool` | True for the page being rendered. Give that link `aria-current="page"`. |
+| `.Current` | `bool` | True for the page being rendered. Give that link `aria-current="page"`, and give it to nothing else on the page. |
+| `.GapBefore` | `bool` | True when pages were elided between the previous entry and this one. Render a separator — the example emits `<li aria-hidden="true">…</li>` — so `1 … 19 20 21 … 42` cannot be misread as consecutive. |
 
 ### `ListData`
 
@@ -118,7 +119,7 @@ Passed to `list.html.tmpl`.
 | `.TotalPages` | `int` | Always at least 1. |
 | `.PrevURL` | `string` | `/N-1`, or `""` on the first page. Omit the control entirely when empty. |
 | `.NextURL` | `string` | `/N+1`, or `""` on the last page. Omit the control entirely when empty. |
-| `.Pages` | `[]PageLink` | Every page, in order, for numbered links. |
+| `.Pages` | `[]PageLink` | The pages to link, in ascending order: the first page, two either side of the current one, and the last page. Not every page — the list stays a fixed size no matter how many pages exist, so entries can be non-consecutive (see `.GapBefore`). |
 | `.CanonicalURL` | `string` | Absolute canonical URL of this page. Must appear as `<link rel="canonical">` — `/` and `/1` render the same content, so this is what keeps them from being treated as duplicates. |
 | `.BaseURL` | `string` | The site's absolute base URL, no trailing slash. |
 | `.Version` | `string` | The application version. |

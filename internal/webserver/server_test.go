@@ -387,8 +387,19 @@ func TestSearchPage(t *testing.T) {
 		r.notContains(t, "search-hits")
 	})
 
-	t.Run("whitespace-only query returns the empty state", func(t *testing.T) {
-		r := e.get(t, "/search?q=%20%20")
+	// Otherwise every distinct spelling of "no query" would be a separate
+	// cacheable URL serving an identical copy of the prerendered page.
+	t.Run("blank queries redirect to the canonical /search", func(t *testing.T) {
+		for _, path := range []string{"/search?q=", "/search?q=%20%20", "/search?q=%09"} {
+			r := e.get(t, path)
+			r.wantStatus(t, http.StatusFound)
+			r.wantHeader(t, "Location", "/search")
+			r.wantHeader(t, "Cache-Control", "no-store")
+		}
+	})
+
+	t.Run("following a blank-query redirect reaches the empty state", func(t *testing.T) {
+		r := do(t, e.following, http.MethodGet, e.url("/search?q=%20%20"), nil)
 		r.wantStatus(t, http.StatusOK)
 		r.contains(t, "Start typing to search")
 		r.notContains(t, "search-hits")

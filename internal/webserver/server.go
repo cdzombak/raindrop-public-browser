@@ -142,6 +142,17 @@ func (s *Server) serveNumberedPage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) serveSearch(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
+		// "?q=", "?q=%20", "?q=%20%20" … are unboundedly many URLs that would
+		// each serve — and let a cache store — an identical copy of the
+		// prerendered page. Anything with a query string that does not amount
+		// to a query collapses onto the canonical URL. no-store for the same
+		// reason: caching the redirects just moves the unbounded key space
+		// rather than closing it.
+		if r.URL.RawQuery != "" {
+			w.Header().Set("Cache-Control", "no-store")
+			http.Redirect(w, r, "/search", http.StatusFound)
+			return
+		}
 		// The prerendered search page (empty state).
 		snap := s.snapshot.Load()
 		s.servePrerendered(w, r, snap.Search, snap.Refreshed)

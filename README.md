@@ -60,7 +60,7 @@ All configuration is via environment variables:
 | `TEMPLATE_DIR` | for `serve` | — | Directory containing the templates. Loaded once at startup; if any template is missing or fails to parse, the app exits non-zero. |
 | `IMAGES_DIR` | for `serve` | — | Directory where cover images are stored. Created if missing. Grows without bound; no garbage collection. |
 | `LISTEN_ADDR` | no | `:8080` | Listen address and port, e.g. `127.0.0.1:8080`. |
-| `BASE_URL` | no | `http://localhost:8080` | External base URL of the site, used for the sitemap and canonical URLs. Set this in production. Must be absolute (`https://bookmarks.example.com`, not `bookmarks.example.com`); trailing slashes are stripped, and a query string or fragment is rejected. |
+| `BASE_URL` | no | `http://localhost:8080` | External base URL of the site, used for the sitemap and canonical URLs. Set this in production. Must be absolute (`https://bookmarks.example.com`, not `bookmarks.example.com`) and must name the site root: trailing slashes are stripped, and a query string, a fragment, or a path (`https://example.com/bookmarks`) is rejected. The app serves from the root — its pages link to `/2` and `/covers/…` — so it cannot be mounted under a path prefix. Give it a hostname of its own, or a subdomain. |
 | `REFRESH_INTERVAL_MINUTES` | no | `15` | Minutes between bookmark refreshes from the Raindrop API. A refresh also runs at startup. |
 | `PUBLIC_TAG` | no | `_public` | The Raindrop tag that marks a bookmark as public. |
 | `PER_PAGE` | no | `10` | Bookmarks per list page. |

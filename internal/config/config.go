@@ -119,7 +119,8 @@ func Load() (*Config, error) {
 // baseURL validates and canonicalizes the external base URL. It has to be
 // absolute: it is pasted verbatim into sitemap entries and canonical links,
 // where a scheme-less value like "bookmarks.example.com" would be silently
-// wrong in a way nobody notices until a search engine does.
+// wrong in a way nobody notices until a search engine does. For the same
+// reason it has to name the site root, with no path of its own.
 func baseURL(raw string) (string, error) {
 	trimmed := strings.TrimRight(raw, "/")
 	if trimmed == "" {
@@ -137,6 +138,14 @@ func baseURL(raw string) (string, error) {
 	}
 	if u.RawQuery != "" || u.Fragment != "" {
 		return "", fmt.Errorf("invalid %s %q: must not carry a query string or fragment", EnvBaseURL, raw)
+	}
+	// The app serves from the site root: pages link to "/2", covers to
+	// "/covers/…". A base URL with a path would put that prefix into the
+	// canonical links, the sitemap and robots.txt while every link on every
+	// page kept pointing at the root — half-broken in whichever direction
+	// the reverse proxy was configured.
+	if u.Path != "" {
+		return "", fmt.Errorf("invalid %s %q: must not include a path; the app serves from the site root", EnvBaseURL, raw)
 	}
 	return trimmed, nil
 }

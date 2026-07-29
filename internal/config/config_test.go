@@ -42,9 +42,7 @@ func TestBaseURL(t *testing.T) {
 			"https://bookmarks.example.com":   "https://bookmarks.example.com",
 			"https://bookmarks.example.com/":  "https://bookmarks.example.com",
 			"https://bookmarks.example.com//": "https://bookmarks.example.com",
-			// A path prefix is legitimate: the app can be mounted under one.
-			"https://example.com/bookmarks/": "https://example.com/bookmarks",
-			"http://localhost:8080":          "http://localhost:8080",
+			"http://localhost:8080":           "http://localhost:8080",
 		} {
 			got, err := baseURL(raw)
 			if err != nil {
@@ -70,6 +68,11 @@ func TestBaseURL(t *testing.T) {
 			"https://example.com?x=1",     // query string
 			"https://example.com#frag",    // fragment
 			"http://exa mple.com",         // unparseable
+			// The app cannot in fact be mounted under a path prefix: pages
+			// link to "/2" and covers to "/covers/…", so the prefix would
+			// reach the canonical links and the sitemap but nothing else.
+			"https://example.com/bookmarks",
+			"https://example.com/bookmarks/",
 		} {
 			if got, err := baseURL(raw); err == nil {
 				t.Errorf("baseURL(%q) = %q, want an error", raw, got)

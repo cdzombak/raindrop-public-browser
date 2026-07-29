@@ -253,11 +253,22 @@ func (r *Renderer) Snapshot(ctx context.Context, st *store.Store, refreshed time
 	totalPages := max((count+r.cfg.PerPage-1)/r.cfg.PerPage, 1)
 
 	lists := make(map[int]*Page, totalPages)
+	// One sitemap lastmod per page, in page order.
+	pageLastMod := make([]time.Time, 0, totalPages)
 	for p := 1; p <= totalPages; p++ {
 		bms, err := st.Page(ctx, p, r.cfg.PerPage)
 		if err != nil {
 			return nil, fmt.Errorf("load page %d: %w", p, err)
 		}
+		// Pages run newest-first, so a page's first bookmark is the most
+		// recently created one on it. The empty-state page has none and
+		// falls back to the refresh time.
+		lastMod := refreshed
+		if len(bms) > 0 {
+			lastMod = bms[0].Created
+		}
+		pageLastMod = append(pageLastMod, lastMod)
+
 		body, err := r.renderList(p, totalPages, count, bms)
 		if err != nil {
 			return nil, err
@@ -270,7 +281,7 @@ func (r *Renderer) Snapshot(ctx context.Context, st *store.Store, refreshed time
 		return nil, err
 	}
 
-	sitemap, err := r.renderSitemap(totalPages, count, refreshed)
+	sitemap, err := r.renderSitemap(pageLastMod)
 	if err != nil {
 		return nil, err
 	}
@@ -406,18 +417,22 @@ type urlSet struct {
 	URLs    []sitemapURL `xml:"url"`
 }
 
-func (r *Renderer) renderSitemap(totalPages, count int, refreshed time.Time) ([]byte, error) {
-	lastMod := refreshed.UTC().Format("2006-01-02")
+// renderSitemap emits one entry per list page, taking each page's lastmod
+// from pageLastMod (indexed by page number - 1).
+//
+// A page's lastmod is the creation date of the newest bookmark on it, not the
+// time of the refresh that rendered it: the refresh time would advance for
+// every page on every run, telling crawlers the whole site changed daily when
+// nothing had. Because pages run newest-first, adding a bookmark shifts one
+// onto each following page and advances that page's newest creation date, so
+// every page whose contents actually moved does get a fresh lastmod.
+func (r *Renderer) renderSitemap(pageLastMod []time.Time) ([]byte, error) {
 	us := urlSet{Xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9"}
-	if count > 0 {
-		for p := 1; p <= totalPages; p++ {
-			us.URLs = append(us.URLs, sitemapURL{
-				Loc:     fmt.Sprintf("%s/%d", r.cfg.BaseURL, p),
-				LastMod: lastMod,
-			})
-		}
-	} else {
-		us.URLs = append(us.URLs, sitemapURL{Loc: r.cfg.BaseURL + "/1", LastMod: lastMod})
+	for i, lastMod := range pageLastMod {
+		us.URLs = append(us.URLs, sitemapURL{
+			Loc:     fmt.Sprintf("%s/%d", r.cfg.BaseURL, i+1),
+			LastMod: lastMod.UTC().Format("2006-01-02"),
+		})
 	}
 	body, err := xml.MarshalIndent(us, "", "  ")
 	if err != nil {

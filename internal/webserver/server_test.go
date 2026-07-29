@@ -558,6 +558,16 @@ func TestSitemap(t *testing.T) {
 	r.contains(t, "<loc>"+testBaseURL+"/1</loc>")
 	r.contains(t, "<loc>"+testBaseURL+"/3</loc>")
 
+	// lastmod is the newest bookmark on each page, not the refresh time.
+	// The fixtures' newest bookmark is fixedCreated + 2h; page 3 holds the
+	// oldest of them, created a day earlier. fixedRefresh is months later,
+	// so if it leaked in it would be unmistakable.
+	t.Run("lastmod comes from the bookmarks, not the refresh", func(t *testing.T) {
+		r.contains(t, "<lastmod>2026-01-15</lastmod>")
+		r.contains(t, "<lastmod>2026-01-14</lastmod>")
+		r.notContains(t, fixedRefresh.Format("2006-01-02"))
+	})
+
 	etag := r.header.Get("ETag")
 	if etag == "" {
 		t.Fatal("no ETag on the sitemap")

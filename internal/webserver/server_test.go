@@ -384,11 +384,22 @@ func TestSearchPage(t *testing.T) {
 		r.contains(t, "SQLite for Servers")
 	})
 
-	t.Run("too-short query returns the empty state, not results", func(t *testing.T) {
-		r := e.get(t, "/search?q=x")
-		r.wantStatus(t, http.StatusOK)
-		r.contains(t, "Start typing to search")
-		r.notContains(t, "search-hits")
+	// A too-short query is its own state: no search runs, but the user did
+	// type something, so the box must still hold it and the page must not
+	// tell them to start typing. The prompt state's markup and text both
+	// appear on every search page regardless — the enhancement script carries
+	// a copy as its fallback — so the rendered state is asserted through its
+	// own wrapper class, and the fragment test below covers the negative.
+	t.Run("too-short query keeps the query in the box", func(t *testing.T) {
+		for query, want := range map[string]string{"x": "x", "%21%21": "!!"} {
+			r := e.get(t, "/search?q="+query)
+			r.wantStatus(t, http.StatusOK)
+			r.contains(t, "search-tooshort")
+			r.contains(t, "Enter at least 2 characters")
+			r.contains(t, `value="`+want+`"`)
+			r.notContains(t, "search-hits")
+			r.notContains(t, "search-noresults")
+		}
 	})
 
 	// Otherwise every distinct spelling of "no query" would be a separate
@@ -444,6 +455,16 @@ func TestSearchResultsSnippet(t *testing.T) {
 		r.wantStatus(t, http.StatusOK)
 		r.contains(t, "No results for")
 		r.contains(t, "zzzznomatch")
+	})
+
+	// The JS only skips the request below 2 typed characters, so a query
+	// like "!!" reaches the endpoint and normalizes away to nothing.
+	t.Run("query that normalizes to nothing returns the too-short fragment", func(t *testing.T) {
+		r := e.get(t, "/search/results?q=%21%21")
+		r.wantStatus(t, http.StatusOK)
+		r.notContains(t, "<html")
+		r.contains(t, "Enter at least 2 characters")
+		r.notContains(t, "Start typing to search")
 	})
 }
 

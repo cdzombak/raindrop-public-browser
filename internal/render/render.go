@@ -81,18 +81,25 @@ type ListData struct {
 
 // ResultsData is the data passed to results.html.tmpl.
 type ResultsData struct {
-	// Query is the user's query as typed (trimmed); autoescaping makes it
-	// safe to echo.
+	// Query is the user's query as typed (trimmed, and capped); autoescaping
+	// makes it safe to echo. It is populated in every state that had a query
+	// at all, including TooShort, so the search box can echo it back.
 	Query string
 	// Queried is false for the initial/empty/too-short states, where the
 	// template shows its "Start typing to search…" prompt.
-	Queried   bool
+	Queried bool
+	// TooShort is true when a query was submitted but normalized to fewer
+	// than the minimum number of characters, so no search ran. It is a
+	// distinct state from the initial prompt: the user typed something, and
+	// telling them to start typing would be wrong.
+	TooShort  bool
 	Bookmarks []Bookmark
 	Count     int
 	// Truncated means more than the result cap matched and the list was cut.
 	Truncated bool
 	// StatusText is the outcome announcement for the visually-hidden
 	// role="status" region: "12 results for goroutines", "No results for x".
+	// Empty only in the initial state, which announces nothing.
 	StatusText string
 }
 
@@ -185,6 +192,7 @@ func (r *Renderer) Verify() error {
 	// Every results state, standalone and wrapped in the search page.
 	states := []ResultsData{
 		EmptyResults(),
+		TooShortResults("x"),
 		r.Results("nothing matches this", nil, false),
 		r.Results("sample", sample, false),
 		r.Results("sample", sample, true),
@@ -322,10 +330,26 @@ func (r *Renderer) renderList(page, totalPages, count int, bms []store.Bookmark)
 	return buf.Bytes(), nil
 }
 
-// EmptyResults is the results state before any (valid) query: the search
+// MinQueryLen is the minimum normalized query length (of the whole query, not
+// of any one token) below which no search runs.
+const MinQueryLen = 2
+
+// EmptyResults is the results state before any query at all: the search
 // page's initial prompt.
 func EmptyResults() ResultsData {
 	return ResultsData{}
+}
+
+// TooShortResults is the state for a query that normalized to fewer than
+// MinQueryLen characters. It keeps Query so the search box still echoes what
+// the user typed — dropping it would silently empty the field on the no-JS
+// round trip.
+func TooShortResults(query string) ResultsData {
+	return ResultsData{
+		Query:      query,
+		TooShort:   true,
+		StatusText: fmt.Sprintf("Enter at least %d characters to search", MinQueryLen),
+	}
 }
 
 // Results builds the ResultsData for an executed query.

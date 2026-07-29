@@ -11,8 +11,20 @@ and must be identical in both:
 Every state ends with a hidden [data-search-status] element carrying
 .StatusText; the script copies its text into the page's persistent
 role="status" region. "bookmark-item" is defined in list.html.tmpl.
+
+Order matters: .TooShort is checked before .Queried, because a too-short
+query has .Queried false but is not the initial prompt state.
 */ -}}
-{{- if not .Queried}}
+{{- if .TooShort}}
+{{- /*
+        The user typed something, it was just too short to search on. Telling
+        them to start typing would be wrong, so this is its own state.
+    */}}
+        <div class="search-tooshort">
+            <p class="search-prompt">Enter at least 2 characters to search.</p>
+            <div hidden data-search-status>{{.StatusText}}</div>
+        </div>
+{{- else if not .Queried}}
         <div class="search-empty" data-search-empty>
             <p class="search-prompt">Start typing to search…</p>
             <div hidden data-search-status>{{.StatusText}}</div>

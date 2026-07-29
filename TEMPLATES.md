@@ -7,7 +7,7 @@ files. They are parsed once at startup and never reloaded; restart the app to
 pick up edits.
 
 At startup the app also *renders* every template against synthetic data
-covering each branch — a populated list page, the empty state, and all four
+covering each branch — a populated list page, the empty state, and all five
 results states. A missing file, a parse failure, or an execution failure (a
 misspelled field, a call to a template that does not exist) is logged and
 exits non-zero. Rendering matters as much as parsing: a fresh install has no
@@ -141,20 +141,26 @@ Passed to `results.html.tmpl`, and reachable as `.Results` from
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `.Query` | `string` | The query as typed, trimmed. Safe to echo — autoescaping handles it. |
-| `.Queried` | `bool` | **False** for the initial, empty, whitespace-only, too-short, and normalizes-to-nothing states: show the "Start typing to search…" prompt. **True** once a search actually ran. |
+| `.Query` | `string` | The query as typed, trimmed, and capped at 128 characters. Populated whenever there was a query at all — including the too-short state, so the search box can echo it back. Safe to echo — autoescaping handles it. |
+| `.Queried` | `bool` | **False** for the initial, empty, whitespace-only, too-short, and normalizes-to-nothing states. **True** once a search actually ran. |
+| `.TooShort` | `bool` | True when a query arrived but normalized to fewer than two characters, so no search ran. `.Queried` is false in this state; check `.TooShort` **first**, because the user did type something and "Start typing to search…" would be the wrong answer. |
 | `.Bookmarks` | `[]Bookmark` | Matches, newest first. Empty with `.Queried` true means "no results". |
 | `.Count` | `int` | `len(.Bookmarks)`. |
 | `.Truncated` | `bool` | True when more than the 100-result cap matched and the list was cut. There is no pagination for search. |
-| `.StatusText` | `string` | The pre-composed outcome announcement — `"12 results for goroutines"`, `"1 result for x"`, `"No results for xyzzy"`, `"More than 100 results for go"`. Empty when `.Queried` is false. See [The `role="status"` mechanism](#the-rolestatus-mechanism). |
+| `.StatusText` | `string` | The pre-composed outcome announcement — `"12 results for goroutines"`, `"1 result for x"`, `"No results for xyzzy"`, `"More than 100 results for go"`, `"Enter at least 2 characters to search"`. Empty only in the initial state, which announces nothing. See [The `role="status"` mechanism](#the-rolestatus-mechanism). |
 
-The three states a `results.html.tmpl` must handle:
+The four states a `results.html.tmpl` must handle, in this order:
 
 | State | Condition | What to render |
 | --- | --- | --- |
+| Too short | `.TooShort` | "Enter at least 2 characters to search" |
 | Prompt | `not .Queried` | "Start typing to search…" |
 | No results | `.Queried` and no `.Bookmarks` | A distinct region naming the query |
 | Results | `.Queried` and `.Bookmarks` | The bookmark list, plus a "refine your search" note when `.Truncated` |
+
+A template written before `.TooShort` existed still works: a too-short query
+falls through to the prompt state, as it did before. It just tells the user to
+start typing when they already have.
 
 `results.html.tmpl` **must be a fragment** — no `<html>`, `<head>` or `<body>` —
 because it is served on its own from the snippet endpoint.
@@ -182,9 +188,10 @@ GET /search/results?q=<query>
 | Cache-Control | `no-store` (no `ETag`) |
 | Status | `200` for every query, including empty, too-short, and no-match |
 
-Empty, whitespace-only, shorter-than-two-characters, and
-normalizes-to-nothing queries all return the prompt state with HTTP 200. The
-endpoint never returns all bookmarks and never redirects.
+Empty and whitespace-only queries return the prompt state with HTTP 200;
+shorter-than-two-characters and normalizes-to-nothing queries return the
+too-short state, also with HTTP 200. The endpoint never returns all bookmarks
+and never redirects.
 
 `robots.txt` disallows `/search`, and `search.html.tmpl` sets
 `<meta name="robots" content="noindex">`.

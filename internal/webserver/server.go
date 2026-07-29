@@ -203,13 +203,9 @@ func (s *Server) serveSearchResults(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body) //nolint:gosec // body is html/template output with contextual autoescaping
 }
 
-// minQueryLen is the minimum normalized query length (whole query, not per
-// token) for a search to execute.
-const minQueryLen = 2
-
 // resultsData executes the query (if valid) and builds the template data.
-// Empty, whitespace-only, unmatchable, and too-short queries all return the
-// empty state with HTTP 200.
+// Empty, whitespace-only, unmatchable, and too-short queries all return a
+// non-results state with HTTP 200.
 func (s *Server) resultsData(r *http.Request, q string) (render.ResultsData, error) {
 	if q == "" {
 		return render.EmptyResults(), nil
@@ -217,8 +213,8 @@ func (s *Server) resultsData(r *http.Request, q string) (render.ResultsData, err
 	// Minimum length applies to the whole normalized query, not per token:
 	// while typing "sqlite s", the trailing 1-char token is a legitimate
 	// prefix filter.
-	if len([]rune(norm.Normalize(q))) < minQueryLen {
-		return render.EmptyResults(), nil
+	if len([]rune(norm.Normalize(q))) < render.MinQueryLen {
+		return render.TooShortResults(q), nil
 	}
 	bms, truncated, err := s.store.Search(r.Context(), q)
 	if err != nil {

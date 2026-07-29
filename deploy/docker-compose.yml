@@ -1,0 +1,42 @@
+# Example Docker Compose deployment for raindrop-public-browser.
+#
+# Prepare, on the host:
+#   - ./data/oauth-state.json  (created by the login subcommand; see README)
+#   - ./data/db/               (SQLite database directory; writable)
+#   - ./data/images/           (downloaded cover images; writable)
+#   - ./template/              (your templates; start from example-template/)
+#
+# All mounted paths must be readable — and all but the template directory
+# writable — by UID/GID 1000, which the container runs as.
+#
+# First-time OAuth login via this container:
+#   docker compose run --rm -p 8080:8080 \
+#     -e RAINDROP_CLIENT_ID -e RAINDROP_CLIENT_SECRET \
+#     browser login
+
+services:
+  browser:
+    image: cdzombak/raindrop-public-browser:1
+    restart: unless-stopped
+    ports:
+      # The app expects to run behind a reverse proxy (see nginx.conf);
+      # bind to loopback only.
+      - "127.0.0.1:8080:8080"
+    environment:
+      OAUTH_STATE_FILE: /data/oauth-state.json
+      DB_DIR: /data/db
+      IMAGES_DIR: /data/images
+      TEMPLATE_DIR: /template
+      LISTEN_ADDR: ":8080"
+      BASE_URL: "https://bookmarks.example.com"
+      # Optional settings, shown with their defaults:
+      # PUBLIC_TAG: "_public"
+      # REFRESH_INTERVAL_MINUTES: "15"
+      # PER_PAGE: "10"
+      # DATE_FORMAT: "January 2, 2006"
+      # DISPLAY_TIMEZONE: "UTC"
+    volumes:
+      - ./data/oauth-state.json:/data/oauth-state.json
+      - ./data/db:/data/db
+      - ./data/images:/data/images
+      - ./template:/template:ro

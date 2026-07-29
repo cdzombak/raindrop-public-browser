@@ -1,0 +1,204 @@
+{{- /*
+search.html.tmpl — the full search page. Data: render.SearchData.
+
+Rendered for the prerendered, query-less /search page and for the no-JS
+round trip /search?q=… . The results region is produced by
+results.html.tmpl, which is also what the /search/results?q=… snippet
+endpoint returns, so the two paths cannot drift.
+
+"app-css", "site-header" and "site-footer" are defined in list.html.tmpl;
+all three templates are parsed into one set. See TEMPLATES.md.
+*/ -}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Search bookmarks - Chris Dzombak</title>
+    <meta name="robots" content="noindex">
+    <meta name="generator" content="raindrop-public-browser {{.Version}}">
+
+    <link rel="canonical" href="{{.BaseURL}}/search">
+    <link rel="alternate" type="application/rss+xml" title="Chris Dzombak's bookmarks" href="https://www.dzombak.com/feeds/bookmarks.rss.xml">
+    <link rel="icon" href="https://www.dzombak.com/content/images/size/w256h256/2025/02/2023-Apple---square.png" type="image/png">
+
+    {{- /* Static assets are hotlinked from dzombak.com; this app serves none. */}}
+    <link rel="stylesheet" href="https://www.dzombak.com/assets/built/screen.css">
+    {{template "app-css"}}
+</head>
+
+<body class="has-serif-title is-head-left-logo is-dropdown-loaded">
+<a class="cdz-skip-link" href="#gh-main">Skip to content</a>
+<div class="gh-site">
+
+    {{template "site-header" "search"}}
+
+    <main id="gh-main" class="gh-main gh-outer" tabindex="-1">
+        <div class="gh-inner">
+            <header class="cdz-bm-pagehead">
+                <h1 class="gh-article-title cdz-bm-pagehead-title">Search bookmarks</h1>
+                <p class="cdz-bm-pagehead-desc">
+                    Bookmark titles and site names are searched. Every word has to match
+                    from the start of a word, in any order.
+                    <a href="{{.BaseURL}}/1">Browse all bookmarks</a> instead.
+                </p>
+            </header>
+
+            {{- /*
+                A plain GET form: it works with JavaScript disabled, submitting to
+                /search?q=… and rendering this same page server-side. The script
+                below is an enhancement layered on top; it never calls
+                preventDefault(), so pressing Enter still submits the form.
+            */}}
+            <form class="cdz-search-form" id="search-form" action="/search" method="get" role="search">
+                <label class="cdz-search-label" id="search-label" for="search-input">Search bookmarks</label>
+                <div class="cdz-search-row">
+                    <input class="cdz-search-input" type="search" id="search-input" name="q"
+                           value="{{.Results.Query}}"
+                           placeholder="e.g. sqlite servers"
+                           autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+                    <button class="cdz-search-submit" type="submit">Search</button>
+                </div>
+            </form>
+
+            {{- /*
+                Persistent, visually-hidden live region. It lives OUTSIDE
+                #search-results so it is never replaced; the script copies each
+                response's status text into it. Seeded server-side for the no-JS
+                round trip.
+            */}}
+            <div class="cdz-visually-hidden" role="status" id="search-status">{{.Results.StatusText}}</div>
+
+            {{- /*
+                The results region. Not a combobox/listbox: no role="combobox",
+                aria-expanded or aria-activedescendant. It is a labelled region
+                whose contents are replaced.
+            */}}
+            <div id="search-results" role="region" aria-labelledby="search-label">
+{{template "results.html.tmpl" .Results}}
+            </div>
+        </div>
+    </main>
+
+    {{template "site-footer" .BaseURL}}
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var input = document.getElementById("search-input");
+  var results = document.getElementById("search-results");
+  var status = document.getElementById("search-status");
+  if (!input || !results || !status || !window.fetch) {
+    return; // leave the plain GET form in place
+  }
+
+  var DEBOUNCE_MS = 300;   // >= 300ms, per the spec
+  var MIN_QUERY_LEN = 2;   // below this we never hit the server
+  var ENDPOINT = "/search/results?q=";
+
+  // The "start typing" markup, captured from the server render when this page
+  // was loaded without a query. The fallback keeps the too-short state working
+  // when the page arrived as /search?q=… instead.
+  var emptyHTML =
+    '<div class="cdz-search-empty" data-search-empty>' +
+    '<p class="cdz-search-prompt">Start typing to search…</p>' +
+    '<div hidden data-search-status></div>' +
+    "</div>";
+  if (results.querySelector("[data-search-empty]")) {
+    emptyHTML = results.innerHTML;
+  }
+
+  var timer = null;
+  var seq = 0;          // request counter; only the newest response is applied
+  var controller = null;
+
+  // Copy the status text carried by the freshly rendered results into the
+  // persistent role="status" region, so only the outcome is announced.
+  function syncStatus() {
+    var el = results.querySelector("[data-search-status]");
+    var text = el ? (el.textContent || "").replace(/\s+/g, " ").trim() : "";
+    if (status.textContent !== text) {
+      status.textContent = text;
+    }
+  }
+
+  function render(html) {
+    // Focus stays in the input: it is outside #search-results, and nothing
+    // here moves focus.
+    results.innerHTML = html;
+    syncStatus();
+  }
+
+  function showEmpty() {
+    seq++;                      // invalidate anything in flight
+    if (controller) {
+      controller.abort();
+      controller = null;
+    }
+    results.removeAttribute("aria-busy");
+    render(emptyHTML);
+  }
+
+  function run(query) {
+    var mySeq = ++seq;
+
+    if (controller) {
+      controller.abort();
+    }
+    controller = window.AbortController ? new AbortController() : null;
+
+    results.setAttribute("aria-busy", "true");
+
+    window.fetch(ENDPOINT + encodeURIComponent(query), {
+      headers: { Accept: "text/html" },
+      credentials: "same-origin",
+      signal: controller ? controller.signal : undefined
+    }).then(function (resp) {
+      if (!resp.ok) {
+        throw new Error("search request failed: " + resp.status);
+      }
+      return resp.text();
+    }).then(function (html) {
+      if (mySeq !== seq) {
+        return; // a newer request has already superseded this one
+      }
+      render(html);
+    }).catch(function (err) {
+      if (err && err.name === "AbortError") {
+        return;
+      }
+      if (mySeq !== seq) {
+        return;
+      }
+      status.textContent = "Search is unavailable right now.";
+    }).then(function () {
+      if (mySeq === seq) {
+        results.removeAttribute("aria-busy");
+      }
+    });
+  }
+
+  input.addEventListener("input", function () {
+    if (timer) {
+      window.clearTimeout(timer);
+    }
+    timer = window.setTimeout(function () {
+      timer = null;
+      var query = input.value.trim();
+      if (query.length < MIN_QUERY_LEN) {
+        showEmpty();
+        return;
+      }
+      run(query);
+    }, DEBOUNCE_MS);
+  });
+})();
+</script>
+
+</body>
+
+</html>

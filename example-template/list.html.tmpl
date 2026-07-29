@@ -1,0 +1,698 @@
+{{- /*
+list.html.tmpl — a bookmark list page. Data: render.ListData.
+
+This file also defines the pieces shared with search.html.tmpl and
+results.html.tmpl. All three files are parsed into one template set, so these
+definitions are visible from the other two:
+
+  "app-css"        — the <style> block (no data)
+  "site-header"    — the dzombak.com header; data is a string naming the
+                     current section: "bookmarks" or "search"
+  "site-footer"    — the dzombak.com footer; data is the site's BaseURL string
+  "bookmark-item"  — one <li> for a render.Bookmark; used by both the list page
+                     and results.html.tmpl so the two cannot drift
+
+See TEMPLATES.md.
+*/ -}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bookmarks{{if gt .Page 1}} - Page {{.Page}}{{end}} - Chris Dzombak</title>
+    <meta name="description" content="Public bookmarks saved by Chris Dzombak.">
+    <meta name="generator" content="raindrop-public-browser {{.Version}}">
+
+    <link rel="canonical" href="{{.CanonicalURL}}">
+    <link rel="alternate" type="application/rss+xml" title="Chris Dzombak's bookmarks" href="https://www.dzombak.com/feeds/bookmarks.rss.xml">
+    <link rel="icon" href="https://www.dzombak.com/content/images/size/w256h256/2025/02/2023-Apple---square.png" type="image/png">
+
+    {{- /* Static assets are hotlinked from dzombak.com; this app serves none. */}}
+    <link rel="stylesheet" href="https://www.dzombak.com/assets/built/screen.css">
+    {{template "app-css"}}
+</head>
+
+{{- /* is-dropdown-loaded is normally added by Ghost's JS; without it screen.css
+       keeps every header nav item at opacity 0. */}}
+<body class="has-serif-title is-head-left-logo is-dropdown-loaded">
+<a class="cdz-skip-link" href="#gh-main">Skip to content</a>
+<div class="gh-site">
+
+    {{template "site-header" "bookmarks"}}
+
+    <main id="gh-main" class="gh-main gh-outer" tabindex="-1">
+        <div class="gh-inner">
+{{- if .Empty}}
+            <div class="cdz-bm-empty">
+                <h1 class="cdz-bm-empty-msg">No bookmarks yet.</h1>
+            </div>
+{{- else}}
+            <header class="cdz-bm-pagehead">
+                <h1 class="gh-article-title cdz-bm-pagehead-title">Bookmarks</h1>
+                <p class="cdz-bm-pagehead-desc">
+                    Links I&rsquo;ve saved and made public.
+                    <a href="{{.BaseURL}}/search">Search them</a>, or
+                    <a href="https://www.dzombak.com/feeds/bookmarks.rss.xml">subscribe by RSS</a>.
+                </p>
+            </header>
+
+            <ul class="cdz-bm-list">
+{{- range .Bookmarks}}
+{{template "bookmark-item" .}}
+{{- end}}
+            </ul>
+
+{{- if gt .TotalPages 1}}
+            <nav class="cdz-bm-pagination" aria-label="Pagination">
+                <ul class="cdz-bm-pagination-list">
+{{- if .PrevURL}}
+                    <li><a class="cdz-bm-page-ctl" href="{{.PrevURL}}" rel="prev"><span class="cdz-bm-page-arrow" aria-hidden="true">&laquo;</span> Previous page</a></li>
+{{- end}}
+{{- range .Pages}}
+{{- if .Current}}
+                    <li><a class="cdz-bm-page-num" href="{{.URL}}" aria-current="page"><span class="cdz-visually-hidden">Page </span>{{.Num}}</a></li>
+{{- else}}
+                    <li><a class="cdz-bm-page-num" href="{{.URL}}"><span class="cdz-visually-hidden">Page </span>{{.Num}}</a></li>
+{{- end}}
+{{- end}}
+{{- if .NextURL}}
+                    <li><a class="cdz-bm-page-ctl" href="{{.NextURL}}" rel="next">Next page <span class="cdz-bm-page-arrow" aria-hidden="true">&raquo;</span></a></li>
+{{- end}}
+                </ul>
+                <p class="cdz-bm-pagination-summary">Page {{.Page}} of {{.TotalPages}}</p>
+            </nav>
+{{- end}}
+{{- end}}
+        </div>
+    </main>
+
+    {{template "site-footer" .BaseURL}}
+
+</div>
+</body>
+
+</html>
+
+
+{{- define "bookmark-item"}}
+                <li class="cdz-bm-item">
+                    <div class="cdz-card kg-card kg-bookmark-card cdz-bm-card">
+                        <div class="kg-bookmark-container">
+                            <div class="kg-bookmark-content">
+                                <div class="kg-bookmark-title">
+                                    <a class="cdz-bm-title-link" href="{{.URL}}" rel="noopener noreferrer">{{if .Title}}{{.Title}}{{else}}{{.URL}}{{end}}</a>
+                                </div>
+{{- if .Excerpt}}
+                                <div class="kg-bookmark-description">{{.Excerpt}}</div>
+{{- end}}
+                                <div class="kg-bookmark-metadata">
+{{- if .Domain}}
+                                    <span class="cdz-bm-domain">{{.Domain}}</span>
+{{- end}}
+                                    <span class="cdz-bm-date">{{.Date}}</span>
+                                </div>
+                            </div>
+{{- /* No cover: the <img> and its box are omitted entirely, never a placeholder. */}}
+{{- if .CoverPath}}
+                            <div class="kg-bookmark-thumbnail">
+                                <img src="{{.CoverPath}}" alt="" loading="lazy" decoding="async">
+                            </div>
+{{- end}}
+                        </div>
+                    </div>
+                </li>
+{{- end}}
+
+
+{{- define "site-header"}}
+    <header id="gh-head" class="gh-head gh-outer">
+        <div class="gh-head-inner gh-inner">
+            <div class="gh-head-brand">
+                <div class="gh-head-brand-wrapper">
+                    <a class="gh-head-logo" href="https://www.dzombak.com">
+                        Chris Dzombak
+                    </a>
+                    <div class="cdz-head-logo-subtitle">&hellip; has too many hobbies.</div>
+                </div>
+            </div>
+
+            <nav class="gh-head-menu" aria-label="Main">
+                <div class="cdz-nav-container">
+                    <ul class="nav">
+                        <li class="nav-blog"><a href="https://www.dzombak.com/blog/">Blog</a></li>
+                        <li class="nav-contact"><a href="https://www.dzombak.com/contact/">Contact</a></li>
+                        <li class="nav-etc"><a href="https://www.dzombak.com/etc/">/etc</a></li>
+                        <li class="nav-photos"><a href="https://pictures.dzombak.com/">Photos</a></li>
+                        <li class="nav-github"><a href="https://github.com/cdzombak">GitHub</a></li>
+{{- if eq . "bookmarks"}}
+                        <li class="nav-bookmarks nav-current"><a href="/1" aria-current="page">Bookmarks</a></li>
+                        <li class="nav-search"><a href="/search">Search</a></li>
+{{- else}}
+                        <li class="nav-bookmarks"><a href="/1">Bookmarks</a></li>
+                        <li class="nav-search nav-current"><a href="/search" aria-current="page">Search</a></li>
+{{- end}}
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </header>
+{{- end}}
+
+
+{{- define "site-footer"}}
+    <footer class="gh-foot gh-outer cdz-foot-nonpost">
+        <div class="gh-foot-inner gh-inner">
+            <div class="gh-copyright">
+                {{- /* role/aria-label so screen readers get one short phrase
+                       instead of ten emoji names; see TEMPLATES.md. */}}
+                <div class="cdz-stuff-i-like-emoji" title="some stuff I like" role="img" aria-label="some stuff I like">&#128187;&#65039; &#128757;&#127995;&#8205;&#9792;&#65039; &#127957;&#65039; &#128038; &#128248; &#129706; &#9749; &#127785;&#65039; &#128251; &#128758;</div>
+                <div class="cdz-copyright">
+                    &copy; 2026 <a href="https://www.dzombak.com/contact/">Chris Dzombak</a>
+                    {{- /* dzombak.com nests a <p> inside a <span> here; a <div>
+                           renders identically and is valid HTML. */}}
+                    <div class="cdz-terms-notice">All rights reserved unless otherwise noted.</div>
+                </div>
+            </div>
+            <div class="cdz-foot-nav-container">
+                <nav class="cdz-foot-nav" aria-label="Footer">
+                    <h2 class="gh-section-title">Site Navigation</h2>
+                    <ul class="nav">
+                        <li><a href="{{.}}/1">Bookmarks</a></li>
+                        <li><a href="{{.}}/search">Search bookmarks</a></li>
+                        <li><a href="https://www.dzombak.com/feeds/bookmarks.rss.xml">Bookmarks RSS</a></li>
+                        <li><a href="https://www.dzombak.com/blog/">Blog</a></li>
+                        <li><a href="https://www.dzombak.com/contact/">Contact</a></li>
+                        <li><a href="https://www.dzombak.com/etc/">/etc</a></li>
+                        <li><a href="https://pictures.dzombak.com/">Photos</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </footer>
+{{- end}}
+
+
+{{- define "app-css"}}
+    <style>
+    /* ------------------------------------------------------------------
+       App-specific CSS for the Raindrop public bookmarks browser.
+
+       Everything here is layered on top of dzombak.com's screen.css and uses
+       that stylesheet's custom properties, so light/dark mode, typography and
+       spacing all follow the site automatically:
+
+         --background-color / --color-white  page background (#fff / #040404)
+         --color-primary-text                body text       (#000 / #fff)
+         --color-secondary-text              muted text      (#444 / #ccc)
+         --color-light-gray, --color-mid-gray, --color-lighter-gray
+         --ghost-accent-color                accent          (#425269 / #809fcc)
+         --font-sans, --font-serif
+       ------------------------------------------------------------------ */
+
+    /* --- utilities --- */
+
+    .cdz-visually-hidden {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .cdz-skip-link {
+      position: absolute;
+      top: 0;
+      left: -9999px;
+      z-index: 100;
+      padding: 1rem 1.6rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-primary-text);
+      background-color: var(--background-color);
+      border: 2px solid var(--ghost-accent-color);
+      border-radius: 0 0 0.25em 0;
+    }
+
+    .cdz-skip-link:focus {
+      left: 0;
+    }
+
+    /* WCAG 2.2 AA 2.4.7 / 2.4.11: never remove the focus indicator. */
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 3px solid var(--ghost-accent-color);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* The skip link's target; a full-width solid ring would be very loud. */
+    #gh-main:focus-visible {
+      outline: 2px dashed var(--ghost-accent-color);
+      outline-offset: -4px;
+    }
+
+    /* --- header: make the nav usable without Ghost's JS --- */
+
+    .gh-head-inner {
+      --head-nav-gap: 3rem;
+    }
+
+    @media (max-width: 1100px) {
+      .gh-head-inner {
+        --head-nav-gap: 2rem;
+      }
+    }
+
+    .gh-head-menu .nav > li {
+      opacity: 1;
+    }
+
+    /*
+      screen.css hides the header menu below 767px and expects Ghost's burger
+      button + JS to reveal it. This app ships no Ghost JS, so the menu is
+      shown inline and allowed to wrap instead.
+    */
+    @media (max-width: 767px) {
+      #gh-head {
+        height: auto;
+      }
+
+      #gh-head .gh-head-inner {
+        gap: 1.2rem;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        height: auto;
+        padding-bottom: 1.2rem;
+      }
+
+      #gh-head .gh-head-brand {
+        display: block;
+        height: auto;
+      }
+
+      #gh-head .gh-head-menu {
+        position: static;
+        justify-content: flex-start;
+        margin: 0;
+        visibility: visible;
+        opacity: 1;
+      }
+
+      #gh-head .cdz-nav-container {
+        width: 100%;
+      }
+
+      #gh-head .nav {
+        flex-wrap: wrap;
+        gap: 0.8rem 2rem;
+        white-space: normal;
+      }
+
+      #gh-head .nav li {
+        opacity: 1;
+        transform: none;
+      }
+
+      #gh-head .nav a {
+        font-size: 1.4rem;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+    }
+
+    /* --- footer: one nav column instead of the site's four --- */
+
+    .gh-foot-inner .cdz-foot-nav-container {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+
+    /*
+      KNOWN CONTRAST FAILURE, inherited from dzombak.com (see TEMPLATES.md):
+      `.cdz-terms-notice` in the footer uses --color-tertiary-text, which is
+      #999 on #fff in light mode — 2.85:1, below the 4.5:1 that WCAG 2.2 AA
+      1.4.3 requires. Dark mode (#777 on #040404) is 4.58:1 and passes.
+      Left as-is so this template matches the site; uncomment to fix locally:
+
+      .cdz-terms-notice { color: var(--color-secondary-text); }
+    */
+
+    /* --- page head --- */
+
+    .cdz-bm-pagehead {
+      margin-bottom: 4rem;
+    }
+
+    .cdz-bm-pagehead-title {
+      font-size: 4.2rem;
+      line-height: 1.1;
+    }
+
+    @media (min-width: 768px) {
+      .cdz-bm-pagehead-title {
+        font-size: 5.6rem;
+      }
+    }
+
+    .cdz-bm-pagehead-desc {
+      max-width: 60ch;
+      margin-top: 1.2rem;
+      font-size: 1.6rem;
+      color: var(--color-secondary-text);
+    }
+
+    .cdz-bm-pagehead-desc a {
+      color: var(--ghost-accent-color);
+      text-decoration: underline;
+    }
+
+    /* --- empty state --- */
+
+    .cdz-bm-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 50vh;
+      text-align: center;
+    }
+
+    .cdz-bm-empty-msg {
+      font-family: var(--gh-font-heading, var(--font-serif));
+      font-size: 3.2rem;
+      font-weight: 450;
+      letter-spacing: -0.01em;
+      color: var(--color-secondary-text);
+    }
+
+    /* --- bookmark list --- */
+
+    .cdz-bm-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr));
+      gap: 1.6rem;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .cdz-bm-item {
+      display: flex;
+      margin: 0;
+    }
+
+    /*
+      The Ghost bookmark-card classes are reused for the look, but the card is
+      deliberately NOT a wrapping <a>: the title is the only link. That means
+      screen.css's `.kg-bookmark-card a.kg-bookmark-container` rules do not
+      apply, so the container is styled here instead.
+    */
+    .cdz-bm-card.kg-bookmark-card {
+      width: 100%;
+      height: 100%;
+    }
+
+    .cdz-bm-card .kg-bookmark-container {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      color: var(--color-primary-text);
+      background-color: var(--background-color);
+      border: 1px solid var(--color-light-gray);
+      border-radius: 0.25em;
+    }
+
+    .cdz-bm-card .kg-bookmark-content {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 0;
+      padding: 1.15em;
+      overflow: hidden;
+      font-family: var(--font-sans);
+    }
+
+    .cdz-bm-card .kg-bookmark-title {
+      font-weight: 600;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .cdz-bm-card .kg-bookmark-title a {
+      color: var(--color-primary-text);
+      text-decoration: none;
+    }
+
+    .cdz-bm-card .kg-bookmark-title a:hover {
+      text-decoration: underline;
+    }
+
+    /*
+      Specificity deliberately matches screen.css's
+      `.cdz-card.kg-bookmark-card .kg-bookmark-description`, which sets
+      `flex: 1` (i.e. flex-basis: 0). In a column flex box whose height is
+      content-derived that would collapse the excerpt out of the card's
+      height, so flex-basis: auto is restored here.
+    */
+    .cdz-bm-card.kg-bookmark-card .kg-bookmark-description {
+      flex: 1 1 auto;
+      margin-top: 0.8rem;
+      font-size: 0.95em;
+      line-height: 1.55;
+      color: var(--color-secondary-text);
+      word-break: break-word;
+    }
+
+    .cdz-bm-card .kg-bookmark-metadata {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0 0.8rem;
+      width: 100%;
+      margin-top: 1.6rem;
+      font-size: 0.8em;
+      font-weight: 500;
+      color: var(--color-secondary-text);
+    }
+
+    .cdz-bm-card .cdz-bm-domain {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .cdz-bm-card .cdz-bm-domain + .cdz-bm-date::before {
+      margin-right: 0.8rem;
+      content: "\2022";
+    }
+
+    /*
+      Cover images come from arbitrary third-party hosts, so their dimensions
+      are unknown at render time. The thumbnail is an aspect-ratio box (the
+      ::before spacer) with the image absolutely positioned inside it, so a
+      lazily-loaded cover can never resize the card under the pointer or the
+      keyboard focus ring.
+    */
+    .cdz-bm-card .kg-bookmark-thumbnail {
+      position: relative;
+      flex: 0 0 34%;
+      min-width: 32%;
+      max-width: 36%;
+      background-color: var(--color-lighter-gray);
+    }
+
+    .cdz-bm-card .kg-bookmark-thumbnail::before {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      content: "";
+    }
+
+    .cdz-bm-card .kg-bookmark-thumbnail img {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 0 0.2em 0.2em 0;
+    }
+
+    /* --- pagination --- */
+
+    .cdz-bm-pagination {
+      padding-top: 2.4rem;
+      margin-top: 4.8rem;
+      border-top: 1px solid var(--color-light-gray);
+    }
+
+    .cdz-bm-pagination-list {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .cdz-bm-pagination a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 4.4rem;
+      min-height: 4.4rem;
+      padding: 0 1.2rem;
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--color-primary-text);
+      text-decoration: none;
+      border: 1px solid var(--color-light-gray);
+      border-radius: 0.25em;
+    }
+
+    .cdz-bm-pagination a:hover {
+      text-decoration: underline;
+      border-color: var(--color-mid-gray);
+    }
+
+    .cdz-bm-pagination a[aria-current="page"] {
+      font-weight: 600;
+      color: var(--background-color);
+      background-color: var(--ghost-accent-color);
+      border-color: var(--ghost-accent-color);
+    }
+
+    .cdz-bm-page-arrow {
+      font-size: 1.3em;
+      line-height: 1;
+    }
+
+    .cdz-bm-pagination-summary {
+      margin-top: 1.2rem;
+      font-size: 1.3rem;
+      color: var(--color-secondary-text);
+    }
+
+    /* --- search --- */
+
+    .cdz-search-form {
+      max-width: 64rem;
+      margin-bottom: 3.2rem;
+    }
+
+    .cdz-search-label {
+      display: block;
+      margin-bottom: 0.8rem;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--color-secondary-text);
+      text-transform: uppercase;
+    }
+
+    .cdz-search-row {
+      display: flex;
+      gap: 0.8rem;
+    }
+
+    .cdz-search-input {
+      flex: 1 1 auto;
+      min-width: 0;
+      height: 5.2rem;
+      padding: 0 1.4rem;
+      font-family: var(--font-sans);
+      font-size: 1.7rem;
+      color: var(--color-primary-text);
+      background-color: var(--background-color);
+      /* --color-dark-gray, not --color-mid-gray: the field's only boundary
+         must clear 3:1 against the page background (WCAG 2.2 AA 1.4.11). */
+      border: 1px solid var(--color-dark-gray);
+      border-radius: 0.25em;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .cdz-search-input::placeholder {
+      color: var(--color-secondary-text);
+      opacity: 1;
+    }
+
+    .cdz-search-submit {
+      flex: 0 0 auto;
+      min-height: 5.2rem;
+      padding: 0 1.8rem;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--background-color);
+      text-transform: uppercase;
+      cursor: pointer;
+      background-color: var(--ghost-accent-color);
+      border: 1px solid var(--ghost-accent-color);
+      border-radius: 0.25em;
+    }
+
+    #search-results[aria-busy="true"] {
+      opacity: 0.55;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      #search-results {
+        transition: opacity 0.15s ease-in-out;
+      }
+    }
+
+    .cdz-search-prompt {
+      font-size: 1.9rem;
+      color: var(--color-secondary-text);
+    }
+
+    .cdz-search-hint {
+      max-width: 60ch;
+      margin-top: 0.8rem;
+      font-size: 1.5rem;
+      color: var(--color-secondary-text);
+    }
+
+    .cdz-search-count {
+      margin-bottom: 1.6rem;
+      font-size: 1.4rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: var(--color-secondary-text);
+      text-transform: uppercase;
+    }
+
+    .cdz-search-truncated {
+      margin-top: 1.6rem;
+      font-size: 1.5rem;
+      font-style: italic;
+      color: var(--color-secondary-text);
+    }
+
+    @media (max-width: 767px) {
+      .cdz-bm-pagehead {
+        margin-bottom: 3.2rem;
+      }
+
+      .cdz-search-row {
+        flex-wrap: wrap;
+      }
+
+      .cdz-search-submit {
+        flex: 1 1 100%;
+      }
+    }
+    </style>
+{{- end}}

@@ -1,0 +1,25 @@
+# Binaries and build output
+/raindrop-public-browser
+*.exe
+*.dll
+*.so
+*.dylib
+/dist/
+/out/
+
+# Test binaries and coverage
+*.test
+*.out
+coverage.*
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Editor / OS cruft
+.DS_Store
+/.idea/*
+
+# Local runtime data
+/data/
+oauth-state.json

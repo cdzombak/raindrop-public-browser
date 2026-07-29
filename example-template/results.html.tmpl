@@ -1,0 +1,45 @@
+{{- /*
+results.html.tmpl — the search-results region. Data: render.ResultsData.
+
+This is a FRAGMENT: no <html>, <head> or <body>. It is rendered two ways and
+must be identical in both:
+
+  1. included by search.html.tmpl inside <div id="search-results">
+  2. returned on its own by the snippet endpoint /search/results?q=…, which the
+     page's JavaScript drops into that same div
+
+Every state ends with a hidden [data-search-status] element carrying
+.StatusText. The script copies its text into the page's persistent
+role="status" region; the results region itself is not a live region.
+
+"bookmark-item" is defined in list.html.tmpl (all three templates are parsed
+into one set), so list pages and search results share one card markup.
+See TEMPLATES.md.
+*/ -}}
+{{- if not .Queried}}
+                <div class="cdz-search-empty" data-search-empty>
+                    <p class="cdz-search-prompt">Start typing to search…</p>
+                    <div hidden data-search-status>{{.StatusText}}</div>
+                </div>
+{{- else if not .Bookmarks}}
+                <div class="cdz-search-noresults">
+                    <p class="cdz-search-prompt">No results for &ldquo;{{.Query}}&rdquo;.</p>
+                    <p class="cdz-search-hint">Only bookmark titles and site names are searched, and each
+                        word has to match from the start of a word &mdash; try a shorter or different term.</p>
+                    <div hidden data-search-status>{{.StatusText}}</div>
+                </div>
+{{- else}}
+                <div class="cdz-search-hits">
+                    <p class="cdz-search-count">
+{{- if .Truncated}}More than {{.Count}} results{{else if eq .Count 1}}1 result{{else}}{{.Count}} results{{end}} for &ldquo;{{.Query}}&rdquo;</p>
+                    <ul class="cdz-bm-list">
+{{- range .Bookmarks}}
+{{template "bookmark-item" .}}
+{{- end}}
+                    </ul>
+{{- if .Truncated}}
+                    <p class="cdz-search-truncated">More than 100 matches &mdash; refine your search.</p>
+{{- end}}
+                    <div hidden data-search-status>{{.StatusText}}</div>
+                </div>
+{{- end}}

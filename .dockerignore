@@ -1,0 +1,29 @@
+# The image is built from Go sources only: `go mod download` then `go build .`.
+# Everything else is context the daemon copies for nothing, and anything that
+# changes often needlessly invalidates the build cache.
+
+.git/
+.github/
+.gitignore
+.golangci.yml
+
+# Build products, and local runtime data — which may hold OAuth credentials
+# and must never reach a build layer.
+out/
+dist/
+data/
+*.db
+oauth-state.json
+
+# Docs, deployment examples, and the spec: not compiled, not shipped.
+*.md
+LICENSE
+deploy/
+specs/
+example-template/
+
+# Tests do not run in the image build.
+**/*_test.go
+**/testdata/
+
+.DS_Store

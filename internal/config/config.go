@@ -3,8 +3,10 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -79,9 +81,9 @@ func Load() (*Config, error) {
 		InDocker:       os.Getenv(EnvInDocker) != "",
 	}
 
-	base := getenvDefault(EnvBaseURL, "http://localhost:8080")
-	for len(base) > 0 && base[len(base)-1] == '/' {
-		base = base[:len(base)-1]
+	base, err := baseURL(getenvDefault(EnvBaseURL, "http://localhost:8080"))
+	if err != nil {
+		return nil, err
 	}
 	c.BaseURL = base
 
@@ -110,6 +112,31 @@ func Load() (*Config, error) {
 	c.Location = loc
 
 	return c, nil
+}
+
+// baseURL validates and canonicalizes the external base URL. It has to be
+// absolute: it is pasted verbatim into sitemap entries and canonical links,
+// where a scheme-less value like "bookmarks.example.com" would be silently
+// wrong in a way nobody notices until a search engine does.
+func baseURL(raw string) (string, error) {
+	trimmed := strings.TrimRight(raw, "/")
+	if trimmed == "" {
+		return "", fmt.Errorf("%s must not be empty", EnvBaseURL)
+	}
+	u, err := url.Parse(trimmed)
+	if err != nil {
+		return "", fmt.Errorf("invalid %s %q: %w", EnvBaseURL, raw, err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "", fmt.Errorf("invalid %s %q: must be an absolute URL beginning with http:// or https://", EnvBaseURL, raw)
+	}
+	if u.Host == "" {
+		return "", fmt.Errorf("invalid %s %q: no host", EnvBaseURL, raw)
+	}
+	if u.RawQuery != "" || u.Fragment != "" {
+		return "", fmt.Errorf("invalid %s %q: must not carry a query string or fragment", EnvBaseURL, raw)
+	}
+	return trimmed, nil
 }
 
 func envInt(key string, def int) (int, error) {

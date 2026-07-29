@@ -52,8 +52,15 @@ func Open(dir string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite db: %w", err)
 	}
-	// A single writer avoids SQLITE_BUSY between the refresher and readers;
-	// WAL lets reads proceed concurrently on the same connection pool.
+	// One connection for everything. This serializes reads as well as
+	// writes — WAL's concurrent readers are given up, not gained — but it
+	// makes SQLITE_BUSY between the refresher and request handlers
+	// impossible. Affordable here because the request path barely touches
+	// the database: list pages, the search page and the sitemap are all
+	// served from the prerendered in-memory snapshot, leaving only search
+	// queries, which are short. The usual alternative, if search throughput
+	// ever matters, is two pools: a writer capped at one connection and a
+	// separate read-only pool.
 	db.SetMaxOpenConns(1)
 	s := &Store{db: db}
 	if err := s.migrate(); err != nil {

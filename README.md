@@ -102,9 +102,14 @@ An example Docker Compose file is provided in
 nginx reverse-proxy configuration (TLS termination, response caching and
 compression) in [`deploy/nginx.conf`](deploy/nginx.conf).
 
-The container runs as UID/GID 1000 and expects four mounts: the OAuth state
-file, the DB directory, the template directory (read-only), and the images
-directory.
+The container runs as UID/GID 1000 and expects two mounts: a writable data
+directory (holding the OAuth state file, the DB directory, and the images
+directory) and the template directory (read-only).
+
+Mount the *directory* containing the OAuth state file, never the state file
+itself. The app rewrites that file by writing a temp file alongside it and
+renaming it into place; a bind-mounted file cannot be replaced by rename from
+inside a container, so token refresh would fail on every attempt.
 
 ## Templates
 

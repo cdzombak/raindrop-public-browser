@@ -1,13 +1,19 @@
 # Example Docker Compose deployment for raindrop-public-browser.
 #
 # Prepare, on the host:
-#   - ./data/oauth-state.json  (created by the login subcommand; see README)
-#   - ./data/db/               (SQLite database directory; writable)
-#   - ./data/images/           (downloaded cover images; writable)
-#   - ./template/              (your templates; start from example-template/)
+#   - ./data/      (writable; holds the OAuth state file, the database
+#                   directory, and the downloaded cover images)
+#   - ./template/  (your templates; start from example-template/)
+#
+# ./data is mounted as a whole directory rather than mounting
+# ./data/oauth-state.json individually. The app rewrites that file by writing
+# a temp file alongside it and renaming it into place, and a bind-mounted
+# *file* cannot be replaced by rename from inside the container — token
+# refresh would fail on every attempt.
 #
 # All mounted paths must be readable — and all but the template directory
-# writable — by UID/GID 1000, which the container runs as.
+# writable — by UID/GID 1000, which the container runs as:
+#   mkdir -p data/db data/images && chown -R 1000:1000 data
 #
 # First-time OAuth login via this container:
 #   docker compose run --rm -p 8080:8080 \
@@ -36,7 +42,5 @@ services:
       # DATE_FORMAT: "January 2, 2006"
       # DISPLAY_TIMEZONE: "UTC"
     volumes:
-      - ./data/oauth-state.json:/data/oauth-state.json
-      - ./data/db:/data/db
-      - ./data/images:/data/images
+      - ./data:/data
       - ./template:/template:ro

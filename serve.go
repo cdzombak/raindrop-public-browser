@@ -63,6 +63,13 @@ func runServe(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	// Parsing proves only syntax, and the startup prerender below exercises
+	// just the empty state when the database is new. Execute every template
+	// branch now so a broken one exits non-zero instead of serving an
+	// endlessly empty site.
+	if err := renderer.Verify(); err != nil {
+		return fmt.Errorf("template check failed: %w", err)
+	}
 
 	st, err := store.Open(cfg.DBDir)
 	if err != nil {

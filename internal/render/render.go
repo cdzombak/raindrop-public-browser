@@ -146,6 +146,52 @@ func Load(dir string, cfg Config) (*Renderer, error) {
 	return &Renderer{tpl: tpl, cfg: cfg}, nil
 }
 
+// Verify executes every template against synthetic data covering each branch
+// the real pages take, discarding the output. Parsing a template only proves
+// its syntax; a bad field reference or a call to an undefined template fails
+// at execution time, and the branches that render a bookmark are not reached
+// at all when the database is still empty. Without this, a typo in the
+// bookmark markup starts cleanly, serves "no bookmarks yet" forever, and
+// surfaces only as a failing refresh in the log.
+func (r *Renderer) Verify() error {
+	sample := []store.Bookmark{
+		{
+			ID: 1, Title: "Sample Bookmark", Excerpt: "A sample excerpt.",
+			URL: "https://example.com/sample", Domain: "example.com",
+			CoverFile: "1-00000000.jpg", CoverType: "image/jpeg",
+			Created: time.Unix(0, 0).UTC(),
+		},
+		// No title, excerpt or cover: the templates take their fallback paths.
+		{ID: 2, URL: "https://example.org/bare", Domain: "example.org", Created: time.Unix(0, 0).UTC()},
+	}
+
+	// Both list-page shapes: a populated middle page (previous and next links
+	// present) and the empty state.
+	if _, err := r.renderList(2, 3, len(sample), sample); err != nil {
+		return err
+	}
+	if _, err := r.renderList(1, 1, 0, nil); err != nil {
+		return err
+	}
+
+	// Every results state, standalone and wrapped in the search page.
+	states := []ResultsData{
+		EmptyResults(),
+		r.Results("nothing matches this", nil, false),
+		r.Results("sample", sample, false),
+		r.Results("sample", sample, true),
+	}
+	for _, d := range states {
+		if _, err := r.ResultsFragment(d); err != nil {
+			return err
+		}
+		if _, err := r.SearchPage(d); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // bookmarkView converts a stored bookmark to its view model.
 func (r *Renderer) bookmarkView(b store.Bookmark) Bookmark {
 	v := Bookmark{

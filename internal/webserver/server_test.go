@@ -604,6 +604,54 @@ func TestLoadRejectsMalformedTemplate(t *testing.T) {
 	}
 }
 
+func TestExampleTemplatePassesVerify(t *testing.T) {
+	if err := newExampleRenderer(t).Verify(); err != nil {
+		t.Fatalf("the shipped example template fails Verify: %v", err)
+	}
+}
+
+// A template that parses but blows up when it renders a bookmark must be
+// caught at startup. Otherwise a fresh install starts cleanly (the startup
+// prerender only exercises the empty state), shows "No bookmarks yet."
+// forever, and reports the real cause only as a failing refresh.
+func TestVerifyCatchesTemplateThatOnlyFailsOnRealData(t *testing.T) {
+	dir := copyExampleTemplates(t)
+	list, err := os.ReadFile(filepath.Join(dir, render.ListTemplate)) //nolint:gosec // this test's own t.TempDir()
+	if err != nil {
+		t.Fatalf("read list template: %v", err)
+	}
+	// Valid syntax, nonexistent field, reachable only when a bookmark renders.
+	broken := strings.Replace(string(list), "{{.Title}}", "{{.Titel}}", 1)
+	if broken == string(list) {
+		t.Fatal("did not find {{.Title}} to corrupt in the example list template")
+	}
+	if err := os.WriteFile(filepath.Join(dir, render.ListTemplate), []byte(broken), 0o600); err != nil { //nolint:gosec // this test's own t.TempDir()
+		t.Fatalf("corrupt template: %v", err)
+	}
+
+	cfg := render.Config{
+		PerPage:    testPerPage,
+		BaseURL:    testBaseURL,
+		DateFormat: "January 2, 2006",
+		Location:   time.UTC,
+		Version:    "test",
+	}
+	r, err := render.Load(dir, cfg)
+	if err != nil {
+		t.Fatalf("render.Load: %v", err)
+	}
+
+	// Precondition: this is exactly the template that slips past parsing and
+	// past a prerender of an empty database.
+	if _, err := r.Snapshot(context.Background(), newTestStore(t), fixedRefresh); err != nil {
+		t.Fatalf("prerender of an empty store failed, so this is not the case under test: %v", err)
+	}
+
+	if err := r.Verify(); err == nil {
+		t.Fatal("Verify accepted a template that cannot render a bookmark, want an error")
+	}
+}
+
 func TestEmptyStore(t *testing.T) {
 	e := newEnv(t, nil)
 

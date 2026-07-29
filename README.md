@@ -177,4 +177,4 @@ template/markup changes with `go test ./internal/... -update`.
 
 ## License
 
-GPL-3.0; see [LICENSE](LICENSE).
+MIT; see [LICENSE](LICENSE).

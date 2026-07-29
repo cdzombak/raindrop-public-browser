@@ -34,8 +34,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s \
 ENTRYPOINT ["/usr/bin/raindrop-public-browser"]
 CMD ["serve"]
 
-LABEL license="GPL-3.0"
-LABEL org.opencontainers.image.licenses="GPL-3.0"
+LABEL license="MIT"
+LABEL org.opencontainers.image.licenses="MIT"
 LABEL maintainer="Chris Dzombak <https://www.dzombak.com>"
 LABEL org.opencontainers.image.authors="Chris Dzombak <https://www.dzombak.com>"
 LABEL org.opencontainers.image.url="https://github.com/cdzombak/raindrop-public-browser"

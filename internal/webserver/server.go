@@ -117,11 +117,11 @@ func (s *Server) notFound(w http.ResponseWriter) {
 // serveFallback answers every request no other route claimed: multi-segment
 // paths, and requests using a method the site does not have.
 //
-// The method check lives here because this pattern matches every path, so it
-// reaches ServeMux's own 405 handling first — without it a POST to /1 came
-// back 404, claiming the page does not exist rather than that the site is
-// read-only. Answering 405 for any path is right for a site where GET and
-// HEAD are the only methods anywhere.
+// The method check lives here because this pattern matches every path, which
+// preempts ServeMux's own 405 handling: a POST to /1 would otherwise be
+// answered 404, claiming the page does not exist rather than that the site is
+// read-only. GET and HEAD are the only methods anywhere here, so 405 is the
+// right answer on any path.
 func (s *Server) serveFallback(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -219,14 +219,12 @@ func (s *Server) serveSearchResults(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body) //nolint:gosec // body is html/template output with contextual autoescaping
 }
 
-// maxQueryLen bounds a search query, in runes. Every token in a query becomes
-// its own prefix term in the FTS5 match expression, and every search runs on
-// the store's single connection — so an unbounded query is unbounded work
-// that blocks every other search and the refresher behind it. Nothing else
-// rate-limits this endpoint.
-//
-// Over-long queries are truncated rather than rejected: no real search is
-// this long, and truncating still answers with something sensible.
+// maxQueryLen bounds a search query, in runes. Every token becomes its own
+// prefix term in the FTS5 match expression, and every search holds the store's
+// single connection, so an unbounded query is unbounded work blocking every
+// other search; nothing else rate-limits this endpoint. Over-long queries are
+// truncated rather than rejected — no real search is this long, and a
+// truncated one still answers sensibly.
 const maxQueryLen = 128
 
 // capQuery truncates q to maxQueryLen runes. Cutting mid-token is harmless —

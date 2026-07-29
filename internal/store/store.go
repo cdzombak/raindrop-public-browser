@@ -28,7 +28,7 @@ type Bookmark struct {
 	Domain   string
 	CoverURL string
 	// CoverFile and CoverType are empty until a cover has been downloaded
-	// and verified; the template omits the image entirely in that case.
+	// and verified.
 	CoverFile string
 	CoverType string
 	Created   time.Time
@@ -39,8 +39,8 @@ type Store struct {
 	db *sql.DB
 }
 
-// Open opens (creating if necessary) the database in dir and applies the
-// schema. The directory must exist or be creatable.
+// Open opens the database in dir, creating the directory, the database and
+// the schema if they do not exist.
 func Open(dir string) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nil, fmt.Errorf("create db directory: %w", err)
@@ -55,12 +55,9 @@ func Open(dir string) (*Store, error) {
 	// One connection for everything. This serializes reads as well as
 	// writes — WAL's concurrent readers are given up, not gained — but it
 	// makes SQLITE_BUSY between the refresher and request handlers
-	// impossible. Affordable here because the request path barely touches
-	// the database: list pages, the search page and the sitemap are all
-	// served from the prerendered in-memory snapshot, leaving only search
-	// queries, which are short. The usual alternative, if search throughput
-	// ever matters, is two pools: a writer capped at one connection and a
-	// separate read-only pool.
+	// impossible. Affordable because the request path barely touches the
+	// database: list pages, the search page and the sitemap all come from
+	// the prerendered in-memory snapshot, leaving only short search queries.
 	db.SetMaxOpenConns(1)
 	s := &Store{db: db}
 	if err := s.migrate(); err != nil {
@@ -122,9 +119,9 @@ func (s *Store) migrate() error {
 
 const timeFormat = time.RFC3339 // stored in UTC; lexicographic order == chronological
 
-// Upsert inserts or updates a batch of bookmarks in one transaction.
-// Titles and excerpts are assumed immutable once public, but are written
-// anyway; a changed cover URL resets the cover download state so the new
+// Upsert inserts or updates a batch of bookmarks in one transaction. Text
+// fields are overwritten every time, so edits made in Raindrop propagate; a
+// changed cover URL additionally resets the cover download state, so the new
 // cover is fetched.
 func (s *Store) Upsert(ctx context.Context, bms []Bookmark) error {
 	if len(bms) == 0 {

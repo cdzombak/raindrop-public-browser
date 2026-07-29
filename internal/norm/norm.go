@@ -87,7 +87,7 @@ func Domain(rawURL string) string {
 }
 
 // SearchText builds the indexed search_text for a bookmark: the normalized
-// title, a space, then the normalized domain.
+// title and domain joined by a space, or whichever one is non-empty.
 func SearchText(title, rawURL string) string {
 	t := Normalize(title)
 	d := Normalize(Domain(rawURL))

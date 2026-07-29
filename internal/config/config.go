@@ -65,9 +65,9 @@ func getenvDefault(key, def string) string {
 	return def
 }
 
-// Load reads configuration from the environment. It validates only what every
-// mode needs; mode-specific requirements (e.g. the template dir for serve) are
-// checked by the callers that need them.
+// Load reads and validates the environment. Which variables are *required*
+// depends on the subcommand (e.g. the template dir for serve), so those checks
+// live in the callers that need them.
 func Load() (*Config, error) {
 	c := &Config{
 		ClientID:       os.Getenv(EnvClientID),
@@ -139,11 +139,8 @@ func baseURL(raw string) (string, error) {
 	if u.RawQuery != "" || u.Fragment != "" {
 		return "", fmt.Errorf("invalid %s %q: must not carry a query string or fragment", EnvBaseURL, raw)
 	}
-	// The app serves from the site root: pages link to "/2", covers to
-	// "/covers/…". A base URL with a path would put that prefix into the
-	// canonical links, the sitemap and robots.txt while every link on every
-	// page kept pointing at the root — half-broken in whichever direction
-	// the reverse proxy was configured.
+	// Pages link to "/2" and covers to "/covers/…", so a path prefix would
+	// reach the canonical links, sitemap and robots.txt but nothing else.
 	if u.Path != "" {
 		return "", fmt.Errorf("invalid %s %q: must not include a path; the app serves from the site root", EnvBaseURL, raw)
 	}

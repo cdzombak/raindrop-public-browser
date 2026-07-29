@@ -85,8 +85,9 @@ type ResultsData struct {
 	// makes it safe to echo. It is populated in every state that had a query
 	// at all, including TooShort, so the search box can echo it back.
 	Query string
-	// Queried is false for the initial/empty/too-short states, where the
-	// template shows its "Start typing to search…" prompt.
+	// Queried is false until a search actually runs: the initial, empty and
+	// too-short states. Templates show the "Start typing to search…" prompt
+	// for the first two and, per TooShort below, something else for the third.
 	Queried bool
 	// TooShort is true when a query was submitted but normalized to fewer
 	// than the minimum number of characters, so no search ran. It is a
@@ -420,12 +421,11 @@ type urlSet struct {
 // renderSitemap emits one entry per list page, taking each page's lastmod
 // from pageLastMod (indexed by page number - 1).
 //
-// A page's lastmod is the creation date of the newest bookmark on it, not the
-// time of the refresh that rendered it: the refresh time would advance for
-// every page on every run, telling crawlers the whole site changed daily when
-// nothing had. Because pages run newest-first, adding a bookmark shifts one
-// onto each following page and advances that page's newest creation date, so
-// every page whose contents actually moved does get a fresh lastmod.
+// A page's lastmod is the creation date of its newest bookmark, not the time
+// of the refresh that rendered it — that would advance every page on every
+// run, telling crawlers the whole site changed daily when nothing had. It
+// still tracks real changes: pages run newest-first, so adding a bookmark
+// shifts one onto each following page and advances that page's newest date.
 func (r *Renderer) renderSitemap(pageLastMod []time.Time) ([]byte, error) {
 	us := urlSet{Xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9"}
 	for i, lastMod := range pageLastMod {

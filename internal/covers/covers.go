@@ -77,8 +77,8 @@ type Downloader struct {
 	ImagesDir   string
 	UserAgent   string
 	Logger      *slog.Logger
-	HTTPClient  *http.Client  // defaults to http.DefaultClient's transport with Timeout
-	Timeout     time.Duration // per image; defaults to DefaultTimeout
+	HTTPClient  *http.Client  // defaults to http.DefaultClient; Timeout below is what bounds a download
+	Timeout     time.Duration // per image, applied as a request context deadline; defaults to DefaultTimeout
 	Concurrency int           // defaults to DefaultConcurrency
 }
 

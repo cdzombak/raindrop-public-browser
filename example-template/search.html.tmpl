@@ -83,8 +83,8 @@ templates are parsed into one set.
   var ENDPOINT = "/search/results?q=";
 
   // The "start typing" markup, captured from the server render when this
-  // page was loaded without a query. The fallback keeps the too-short state
-  // working when the page arrived as /search?q=… instead.
+  // page was loaded without a query. The hard-coded fallback covers a page
+  // that arrived as /search?q=…, whose results region holds something else.
   var emptyHTML =
     '<div class="search-empty" data-search-empty>' +
     '<p class="search-prompt">Start typing to search…</p>' +

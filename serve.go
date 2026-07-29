@@ -51,7 +51,7 @@ func runServe(logger *slog.Logger) error {
 		return err
 	}
 
-	// Templates load once at startup; a missing or malformed template means
+	// Templates load once at startup; a missing or malformed one means
 	// exiting non-zero rather than starting and serving errors.
 	renderer, err := render.Load(cfg.TemplateDir, render.Config{
 		PerPage:    cfg.PerPage,
@@ -63,10 +63,8 @@ func runServe(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	// Parsing proves only syntax, and the startup prerender below exercises
-	// just the empty state when the database is new. Execute every template
-	// branch now so a broken one exits non-zero instead of serving an
-	// endlessly empty site.
+	// Parsing proves only syntax; render every branch too, so a broken one
+	// fails startup rather than the first refresh. See render.Verify.
 	if err := renderer.Verify(); err != nil {
 		return fmt.Errorf("template check failed: %w", err)
 	}
@@ -77,8 +75,9 @@ func runServe(logger *slog.Logger) error {
 	}
 	defer func() { _ = st.Close() }()
 
-	// Startup order: prerender from the existing database, start serving,
-	// then kick off a refresh.
+	// Prerender from the existing database before anything starts, so the
+	// site is complete from the first request; serving and refreshing then
+	// run concurrently.
 	snap, err := renderer.Snapshot(context.Background(), st, time.Now())
 	if err != nil {
 		return fmt.Errorf("initial prerender: %w", err)

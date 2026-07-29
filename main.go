@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"os"
 	_ "time/tzdata" // the scratch Docker image has no timezone database
+
+	"github.com/cdzombak/raindrop-public-browser/internal/config"
 )
 
 // version is set at build time via -ldflags "-X main.version=...".
@@ -26,7 +28,15 @@ Commands:
 }
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	// Build the logger before anything else, so a bad LOG_LEVEL is reported
+	// through the same channel as every other error. An invalid value falls
+	// back to info rather than refusing to start: losing the ability to run
+	// over a logging preference would be a poor trade.
+	level, levelErr := config.LogLevel()
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+	if levelErr != nil {
+		logger.Warn("falling back to the default log level", "error", levelErr)
+	}
 
 	if len(os.Args) < 2 {
 		usage()

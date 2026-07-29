@@ -41,6 +41,7 @@ services:
       # PER_PAGE: "10"
       # DATE_FORMAT: "January 2, 2006"
       # DISPLAY_TIMEZONE: "UTC"
+      # LOG_LEVEL: "info"
     volumes:
       - ./data:/data
       - ./template:/template:ro

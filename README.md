@@ -65,6 +65,7 @@ All configuration is via environment variables:
 | `PER_PAGE` | no | `10` | Bookmarks per list page. |
 | `DATE_FORMAT` | no | `January 2, 2006` | Bookmark date display format, as a [Go date format string](https://pkg.go.dev/time#pkg-constants). |
 | `DISPLAY_TIMEZONE` | no | `UTC` | Timezone for date display, e.g. `America/Detroit`. |
+| `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error`. An unrecognized value logs a warning and falls back to `info` rather than refusing to start. Requests are not logged at any level; that is the reverse proxy's job. |
 | `RAINDROP_CLIENT_ID` | for `login` | — | Raindrop OAuth app client ID. |
 | `RAINDROP_CLIENT_SECRET` | for `login` | — | Raindrop OAuth app client secret. |
 | `OAUTH_REDIRECT_URI` | no | `http://localhost:8080/oauth` | OAuth redirect URI; must exactly match the redirect URI configured in your Raindrop app. |

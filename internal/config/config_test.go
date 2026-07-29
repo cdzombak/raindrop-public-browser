@@ -1,6 +1,40 @@
 package config
 
-import "testing"
+import (
+	"log/slog"
+	"testing"
+)
+
+func TestLogLevel(t *testing.T) {
+	for raw, want := range map[string]slog.Level{
+		"":      slog.LevelInfo, // unset
+		"debug": slog.LevelDebug,
+		"INFO":  slog.LevelInfo, // case-insensitive
+		"warn":  slog.LevelWarn,
+		"error": slog.LevelError,
+	} {
+		t.Setenv(EnvLogLevel, raw)
+		got, err := LogLevel()
+		if err != nil {
+			t.Errorf("LogLevel() with %s=%q: unexpected error: %v", EnvLogLevel, raw, err)
+			continue
+		}
+		if got != want {
+			t.Errorf("LogLevel() with %s=%q = %v, want %v", EnvLogLevel, raw, got, want)
+		}
+	}
+
+	// A bad value must still yield a usable logger: the caller warns and
+	// carries on rather than refusing to start over a logging preference.
+	t.Setenv(EnvLogLevel, "verbose")
+	got, err := LogLevel()
+	if err == nil {
+		t.Error("LogLevel() accepted \"verbose\", want an error")
+	}
+	if got != slog.LevelInfo {
+		t.Errorf("LogLevel() fell back to %v, want %v", got, slog.LevelInfo)
+	}
+}
 
 func TestBaseURL(t *testing.T) {
 	t.Run("accepted", func(t *testing.T) {

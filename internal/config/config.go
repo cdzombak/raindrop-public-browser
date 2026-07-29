@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"strconv"
@@ -26,6 +27,7 @@ const (
 	EnvPerPage         = "PER_PAGE"
 	EnvDateFormat      = "DATE_FORMAT"
 	EnvTimezone        = "DISPLAY_TIMEZONE"
+	EnvLogLevel        = "LOG_LEVEL"
 	// EnvInDocker is set by the Dockerfile. When present, the OAuth callback
 	// server binds 0.0.0.0 instead of the redirect URI's host, so a published
 	// container port (docker run -p) can reach it.
@@ -137,6 +139,24 @@ func baseURL(raw string) (string, error) {
 		return "", fmt.Errorf("invalid %s %q: must not carry a query string or fragment", EnvBaseURL, raw)
 	}
 	return trimmed, nil
+}
+
+// LogLevel resolves $LOG_LEVEL to a slog level, defaulting to info. It is
+// separate from Load because logging is set up before configuration is read —
+// a configuration error is itself something to log.
+func LogLevel() (slog.Level, error) {
+	v := os.Getenv(EnvLogLevel)
+	if v == "" {
+		return slog.LevelInfo, nil
+	}
+	// UnmarshalText accepts the level names case-insensitively, plus offsets
+	// like "warn+2"; the error it returns names neither the variable nor the
+	// accepted values, so it is replaced.
+	var l slog.Level
+	if err := l.UnmarshalText([]byte(v)); err != nil {
+		return slog.LevelInfo, fmt.Errorf("invalid %s %q: want debug, info, warn, or error", EnvLogLevel, v)
+	}
+	return l, nil
 }
 
 func envInt(key string, def int) (int, error) {

@@ -152,6 +152,8 @@ func (d *Downloader) DownloadAll(ctx context.Context, st *store.Store) error {
 				}
 				return
 			}
+			d.Logger.Debug("cover downloaded",
+				"bookmark_id", c.ID, "url", c.CoverURL, "file", filename, "type", sniffed)
 			if derr := st.SetCover(ctx, c.ID, filename, sniffed); derr != nil && dbErr == nil {
 				dbErr = derr
 			}

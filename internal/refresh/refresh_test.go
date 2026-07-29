@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -224,6 +225,93 @@ func TestRefreshImportsAllPagesAndFiresOnSnapshot(t *testing.T) {
 	if len(snapshots[0].Lists) != 6 {
 		t.Errorf("len(snapshot.Lists) = %d, want 6", len(snapshots[0].Lists))
 	}
+}
+
+// The tag is the only thing standing between a private bookmark and a public
+// web page, so the refresher confirms it rather than trusting the API's tag
+// search to have filtered correctly.
+func TestRefreshRequiresTheTag(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	newRefresher := func(t *testing.T, items []raindrop.Item) (*Refresher, *store.Store) {
+		t.Helper()
+		apiSrv, _ := newAPIServer(t, items, 0)
+		st := newTestStore(t)
+		return &Refresher{
+			Store:      st,
+			Fetcher:    &raindrop.Fetcher{BaseURL: apiSrv.URL, PageDelay: time.Millisecond},
+			Downloader: newDownloader(t),
+			Renderer:   newTestRenderer(t),
+			Tokens:     StaticToken("test-token"),
+			Tag:        "_public",
+			Logger:     testLogger(),
+			Clock:      func() time.Time { return base },
+		}, st
+	}
+
+	// A helper for an item carrying whatever tags the case needs.
+	tagged := func(id int64, title string, tags []string) raindrop.Item {
+		it := makeItem(id, title, "", base.Add(time.Duration(id)*time.Minute))
+		it.Tags = tags
+		return it
+	}
+
+	t.Run("untagged raindrops are skipped", func(t *testing.T) {
+		r, st := newRefresher(t, []raindrop.Item{
+			tagged(1, "Public", []string{"_public", "go"}),
+			tagged(2, "Private", []string{"go"}),
+			tagged(3, "No tags at all", nil),
+		})
+		if err := r.Refresh(context.Background()); err != nil {
+			t.Fatalf("Refresh: %v", err)
+		}
+		count, err := st.Count(context.Background())
+		if err != nil {
+			t.Fatalf("Count: %v", err)
+		}
+		if count != 1 {
+			t.Fatalf("store Count = %d, want 1 (only the tagged raindrop)", count)
+		}
+	})
+
+	t.Run("tag matching is case-insensitive", func(t *testing.T) {
+		r, st := newRefresher(t, []raindrop.Item{tagged(1, "Public", []string{"_Public"})})
+		if err := r.Refresh(context.Background()); err != nil {
+			t.Fatalf("Refresh: %v", err)
+		}
+		count, err := st.Count(context.Background())
+		if err != nil {
+			t.Fatalf("Count: %v", err)
+		}
+		if count != 1 {
+			t.Fatalf("store Count = %d, want 1", count)
+		}
+	})
+
+	// Every result lacking the tag means the request or the response shape is
+	// wrong, not that the collection was emptied. That must surface as a
+	// failed refresh, not as silence.
+	t.Run("all-untagged fails the refresh", func(t *testing.T) {
+		r, _ := newRefresher(t, []raindrop.Item{
+			tagged(1, "One", []string{"go"}),
+			tagged(2, "Two", nil),
+		})
+		err := r.Refresh(context.Background())
+		if err == nil {
+			t.Fatal("Refresh succeeded, want an error")
+		}
+		if !strings.Contains(err.Error(), "_public") {
+			t.Errorf("error %q does not name the tag", err)
+		}
+	})
+
+	// No results at all is a legitimate empty collection, not a failure.
+	t.Run("zero results is not a failure", func(t *testing.T) {
+		r, _ := newRefresher(t, nil)
+		if err := r.Refresh(context.Background()); err != nil {
+			t.Fatalf("Refresh: %v", err)
+		}
+	})
 }
 
 func TestRefreshIdempotentStableETags(t *testing.T) {

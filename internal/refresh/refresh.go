@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/cdzombak/raindrop-public-browser/internal/covers"
@@ -65,7 +67,18 @@ func (r *Refresher) Refresh(ctx context.Context) error {
 	}
 
 	bms := make([]store.Bookmark, 0, len(items))
+	untagged := 0
 	for _, it := range items {
+		// Publishing a bookmark is driven entirely by this tag, so do not
+		// take the API's search results on faith: confirm each raindrop
+		// really carries it. Comparison is case-insensitive because Raindrop
+		// treats tags that way.
+		if !hasTag(it.Tags, r.Tag) {
+			untagged++
+			r.Logger.Warn("skipping raindrop returned by the tag search but not carrying the tag",
+				"raindrop_id", it.ID, "tag", r.Tag, "tags", it.Tags)
+			continue
+		}
 		created, err := time.Parse(time.RFC3339, it.Created)
 		if err != nil {
 			r.Logger.Warn("skipping raindrop with unparseable created timestamp",
@@ -81,6 +94,14 @@ func (r *Refresher) Refresh(ctx context.Context) error {
 			Created:  created,
 		})
 	}
+	// A tag search that returns raindrops, none of which carry the tag, means
+	// the request or the response shape is wrong — not that the collection
+	// was emptied. Fail the refresh so last_refresh_ok reports it, rather
+	// than quietly never importing anything again.
+	if untagged > 0 && untagged == len(items) {
+		return fmt.Errorf("all %d raindrops returned by the tag search lack the %q tag", untagged, r.Tag)
+	}
+
 	if err := r.Store.Upsert(ctx, bms); err != nil {
 		return fmt.Errorf("store bookmarks: %w", err)
 	}
@@ -101,9 +122,15 @@ func (r *Refresher) Refresh(ctx context.Context) error {
 	}
 
 	r.Logger.Info("bookmarks refresh complete",
-		"fetched", len(items), "pages", snap.TotalPages,
+		"fetched", len(items), "stored", len(bms), "untagged", untagged,
+		"pages", snap.TotalPages,
 		"duration", r.now().Sub(start).Round(time.Millisecond).String())
 	return nil
+}
+
+// hasTag reports whether tags contains tag, case-insensitively.
+func hasTag(tags []string, tag string) bool {
+	return slices.ContainsFunc(tags, func(t string) bool { return strings.EqualFold(t, tag) })
 }
 
 // Run performs an immediate refresh, then refreshes every interval until ctx

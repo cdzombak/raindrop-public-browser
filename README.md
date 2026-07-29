@@ -40,13 +40,14 @@ makes the removal visible.
 
 ## CLI
 
-The binary has three subcommands:
-
 - `login` — runs the interactive Raindrop OAuth flow and writes the OAuth
   state file.
 - `serve` — runs the web server.
 - `healthcheck` — probes the running server's `/_status` endpoint; exits 0 if
   the server is up, 1 otherwise. (Used by the Docker health check.)
+- `version` — prints the version and exits.
+
+`help` (or `-h`/`--help`) prints usage.
 
 ## Configuration
 

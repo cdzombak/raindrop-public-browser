@@ -20,23 +20,22 @@ configurable).
 ## Publishing a bookmark is one-way
 
 **Tagging a bookmark `_public` cannot be undone from Raindrop.** The sync only
-ever adds and updates rows; it never deletes them. Removing the tag, or
-deleting the raindrop outright, leaves the bookmark on the public site — and
-its downloaded cover image on disk — indefinitely.
+ever adds and updates rows; it never deletes them — a deliberate
+simplification, but it means the tag is a commitment. Removing it, or deleting
+the raindrop outright, leaves the bookmark on the public site indefinitely.
 
-This is a deliberate simplification (it is what lets the app treat titles,
-excerpts and covers as immutable and cache aggressively), but it means the tag
-is a commitment. To actually retract a bookmark you must stop the app, delete
-its row from the SQLite database and its file from the images directory, and
-start the app again:
+Retracting one takes two steps, in this order: untag it in Raindrop, then
+delete its row.
 
 ```sh
 sqlite3 "$DB_DIR/bookmarks.db" 'DELETE FROM bookmarks WHERE id = <raindrop id>;'
 ```
 
-The search index follows automatically: a delete trigger keeps FTS5 in sync.
-The pages are prerendered from the database at startup, so the restart is what
-makes the removal visible.
+The other order does not work — the next refresh finds the tag and puts the row
+back. The search index follows automatically (a delete trigger keeps FTS5 in
+sync), and pages are re-prerendered after every refresh, so the bookmark
+disappears within one `REFRESH_INTERVAL_MINUTES`; no restart needed. Its cover
+image stays in `IMAGES_DIR`, unreferenced, until you delete that too.
 
 ## CLI
 

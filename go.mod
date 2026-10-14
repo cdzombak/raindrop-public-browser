@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/cdzombak/raindrop-io-api-client v0.0.0-20260723155551-d45bc79c6f0c
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.43.0
 	modernc.org/sqlite v1.55.0
 )
 
